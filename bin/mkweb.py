@@ -56,8 +56,8 @@ class Config:
 	def get_num_news(self):
 		return self.get('num_news', 8)
 
-	def get_filetypes(self):
-		return self.get('filetypes', [])
+	def get_source_filetypes(self):
+		return self.get('source-filetypes', [])
 
 	def get_path_map(self):
 		return self.get('path_map', [])
@@ -330,8 +330,13 @@ def process_document(filename_in, filename_out, pagetags = None):
 		raise IOError('error in executing pandoc to create html, err: ' + err)
 
 def convert_path(path):
+	"""
+	Checks wheather or not the specified file is to be accepted, and returns
+	the filename with its destination file extension. If the file is not accepted,
+	None is returned.
+	"""
 	fn, ext = os.path.splitext(path)
-	if ext in config.get_filetypes():
+	if ext in config.get_source_filetypes():
 		return path.replace(ext, '.html')
 	return None
 
