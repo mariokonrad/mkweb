@@ -30,13 +30,13 @@ class Config:
 		return default_value
 
 	def get_source(self):
-		return self.get('source', 'pagex')
+		return self.get('source', 'pages')
 
 	def get_destination(self):
 		return self.get('destination', 'public')
 
 	def get_static(self):
-		return self.get('static', 'files')
+		return self.get('static', None)
 
 	def get_site_url(self):
 		return self.get('site_url', '?')
@@ -56,8 +56,8 @@ class Config:
 	def get_num_news(self):
 		return self.get('num_news', 8)
 
-	def get_source_filetypes(self):
-		return self.get('source-filetypes', [])
+	def get_source_process_filetypes(self):
+		return self.get('source-process_filetypes', ['.md'])
 
 	def get_path_map(self):
 		return self.get('path_map', [])
@@ -146,6 +146,20 @@ def copytree(src, dst, symlinks = False, ignore = None):
 			copytree(s, d, symlinks, ignore)
 		else:
 			shutil.copy2(s, d)
+
+def make_exclude_file_func(file_types):
+	"""
+	Returns a function to filter configured file types. All the specified
+	file types are collected and returned as an exclude list.
+	"""
+	def func(directory, files):
+		exclude = []
+		for filename in files:
+			fn, ext = os.path.splitext(filename)
+			if ext in file_types:
+				exclude.append(filename)
+		return exclude
+	return func
 
 def ensure_path(filename):
 	"""
@@ -336,7 +350,7 @@ def convert_path(path):
 	None is returned.
 	"""
 	fn, ext = os.path.splitext(path)
-	if ext in config.get_source_filetypes():
+	if ext in config.get_source_process_filetypes():
 		return path.replace(ext, '.html')
 	return None
 
@@ -640,7 +654,15 @@ def main(arg = None):
 
 	if args.copy:
 		print('copy files')
-		copytree(config.get_static(), config.get_destination())
+
+		# if no static directory is configured, we assume the source directory to
+		# contain files to copy. Just let's ignore the file types we are already
+		# processing.
+		if config.get_static() and (config.get_static() != config.get_source()):
+			copytree(config.get_static(), config.get_destination())
+		else:
+			copytree(config.get_source(), config.get_destination(),
+				ignore = make_exclude_file_func(config.get_source_process_filetypes()))
 
 if __name__ == '__main__':
 	status = main()
