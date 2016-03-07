@@ -1,0 +1,7 @@
+include:
+- ol-min-2.13.1/OpenLayers.js
+- osm.js
+
+install:
+- ol-min-2.13.1
+- osm.js

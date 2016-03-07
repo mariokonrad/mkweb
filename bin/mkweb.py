@@ -38,8 +38,20 @@ class Config:
 	def get_static(self):
 		return self.get('static', None)
 
+	def get_plugin_path(self, plugin):
+		path = self.get('plugins', None)
+		if path:
+			path += '/' + plugin + '/'
+		return path
+
 	def get_site_url(self):
 		return self.get('site_url', '?')
+
+	def get_plugin_url(self, plugin):
+		url = self.get('plugin_url', None)
+		if url:
+			url += plugin + '/'
+		return url
 
 	def get_site_title(self):
 		return self.get('site_title', 'TITLE')
@@ -104,7 +116,6 @@ class Config:
 					return direction
 		return 'ascending'
 
-
 #
 # global data
 #
@@ -114,6 +125,32 @@ global_yearlist = u''
 global_pagelist = u''
 global_meta = {}
 pandoc_bin = 'pandoc'
+
+
+class System:
+	@staticmethod
+	def get_theme_path():
+		return os.path.dirname(os.path.realpath(__file__)) + '/../shared/themes/' + config.get_theme() + '/'
+
+	@staticmethod
+	def get_plugin_path(plugin):
+		return os.path.dirname(os.path.realpath(__file__)) + '/../shared/plugins/' + plugin + '/'
+
+	@staticmethod
+	def get_theme_template():
+		return System.get_theme_path() + 'template.html'
+
+	@staticmethod
+	def get_theme_style():
+		return System.get_theme_path() + 'style.html'
+
+	@staticmethod
+	def get_theme_footer():
+		return System.get_theme_path() + 'footer.html'
+
+	@staticmethod
+	def get_plugin_style(plugin):
+		return System.get_plugin_path(plugin) + 'style.html'
 
 
 def copytree(src, dst, symlinks = False, ignore = None):
@@ -147,6 +184,26 @@ def copytree(src, dst, symlinks = False, ignore = None):
 		else:
 			shutil.copy2(s, d)
 
+def copy_plugin_files(plugin):
+	print('install plugin: ' + plugin)
+	plugin_path = config.get_plugin_path(plugin)
+	with open(System.get_plugin_path(plugin) + 'files.yml', 'r') as config_file:
+		cfg = yaml.load(config_file.read())
+		if cfg and ('install' in cfg):
+			for f in cfg['install']:
+				fn = System.get_plugin_path(plugin) + f
+				if os.path.exists(fn):
+					if os.path.isfile(fn):
+						print('  copy "'+ fn + '" -> "' + plugin_path + '"')
+						ensure_path(plugin_path)
+						shutil.copy2(fn, plugin_path)
+					elif os.path.isdir(fn):
+						print('  copy "'+ fn + '" -> "' + plugin_path + f + '"')
+						ensure_path(plugin_path)
+						copytree(fn, plugin_path + f)
+					else:
+						raise IOError('entity to copy is not a file or directory')
+
 def make_exclude_file_func(file_types):
 	"""
 	Returns a function to filter configured file types. All the specified
@@ -178,18 +235,6 @@ def ensure_path(filename):
 	os.makedirs(path)
 	return True
 
-def get_theme_path():
-	return os.path.dirname(os.path.realpath(__file__)) + '/../shared/themes/' + config.get_theme()
-
-def get_theme_template():
-	return get_theme_path() + '/template.html'
-
-def get_theme_style():
-	return get_theme_path() + '/style.html'
-
-def get_theme_footer():
-	return get_theme_path() + '/footer.html'
-
 def read_meta(path):
 	fn, ext = os.path.splitext(path)
 	if ext == '.md':
@@ -207,6 +252,7 @@ def collect_information(root_directory):
 	info = {}
 	tags = {}
 	years = {}
+	plugins = set([])
 	for dirname, subdirlist, filelist in os.walk(root_directory):
 		for fn in filelist:
 			filename = dirname + '/' + fn
@@ -225,6 +271,11 @@ def collect_information(root_directory):
 			# read meta data and remember general file information
 			info[rel_filename] = meta
 
+			# collect plugins
+			if 'plugins' in meta:
+				for plugin in meta['plugins']:
+					plugins.add(plugin)
+
 			# check and extract tags
 			if 'tags' in meta:
 				for tag in meta['tags']:
@@ -239,7 +290,7 @@ def collect_information(root_directory):
 					years[d.year] = []
 				years[d.year].append({'filename':rel_filename, 'meta':meta})
 
-	return info, tags, years
+	return info, tags, years, plugins
 
 def replace_root(link):
 	parts = link.split('/')
@@ -287,34 +338,63 @@ def conversion_necessary(filename_in, filename_out):
 	mtime_out = os.path.getmtime(filename_out)
 	if mtime_out < os.path.getmtime(filename_in):
 		return True
-	if mtime_out < os.path.getmtime(get_theme_template()):
+	if mtime_out < os.path.getmtime(System.get_theme_template()):
 		return True
-	if mtime_out < os.path.getmtime(get_theme_style()):
+	if mtime_out < os.path.getmtime(System.get_theme_style()):
 		return True
-	if mtime_out < os.path.getmtime(get_theme_footer()):
+	if mtime_out < os.path.getmtime(System.get_theme_footer()):
 		return True
 	return False
+
+def get_meta_for_source(filename_in):
+	filename = filename_in.replace(config.get_source() + '/', '')
+	if filename in global_meta:
+		return global_meta[filename]
+	return None
+
+def make_plugin_script_string(plugin, filename):
+	return u'<script type="text/javascript" src="' + config.get_plugin_url(plugin) \
+		+ filename + '"></script>\n'
+
+def create_header_for_plugin(plugin):
+	s = u''
+	with open(System.get_plugin_path(plugin) + 'files.yml', 'r') as config_file:
+		cfg = yaml.load(config_file.read())
+		if cfg and ('include' in cfg):
+			for f in cfg['include']:
+				s += make_plugin_script_string(plugin, f)
+	return s
 
 def process_document(filename_in, filename_out, pagetags = None):
 	if not conversion_necessary(filename_in, filename_out):
 		print('skip    %s' % (filename_out))
 		return
+
 	print('        %s' % (filename_out))
 	ensure_path(filename_out)
+
+	# conversion from source file to JSON
+
 	params = [pandoc_bin, '-t', 'json', filename_in]
 	text = subprocess.Popen(params, stdout = subprocess.PIPE).communicate()[0]
+
+	# process JSON AST
+
 	j = json.loads(text)
 	recursive_search_links(j)
+
+	# prepare final conversion parameter
+
 	params = [pandoc_bin,
 		'-f', 'json',
 		'-t', 'html5',
 		'-o', filename_out,
-		'-H', get_theme_style(),
-		'-A', get_theme_footer(),
+		'-H', System.get_theme_style(),
+		'-A', System.get_theme_footer(),
 		'-M', 'title-prefix=' + config.get_site_title(),
 		'-V', 'siteurl=' + config.get_site_url(),
 		'-V', 'sitetitle=' + config.get_site_title(),
-		'--template', get_theme_template(),
+		'--template', System.get_theme_template(),
 		'--standalone',
 		'--preserve-tabs',
 		'--toc', '--toc-depth=2',
@@ -334,6 +414,14 @@ def process_document(filename_in, filename_out, pagetags = None):
 		params.extend(['-V', 'pagetags='+ pagetags])
 	if config.get_pagelist_enable() and (len(global_pagelist) > 0):
 		params.extend(['-V', 'globalpagelist=' + global_pagelist])
+
+	meta = get_meta_for_source(filename_in)
+	if meta and ('plugins' in meta):
+		for plugin in meta['plugins']:
+			params.extend(['-H', System.get_plugin_style(plugin)])
+			params.extend(['-V', 'header-string=' + create_header_for_plugin(plugin)])
+
+	# execute final conversion to HTML
 
 	p = subprocess.Popen(params,
 		stdout = subprocess.PIPE,
@@ -358,9 +446,8 @@ def process_single(source_directory, destination_directory, path):
 	filename_in = path
 	filename_out = convert_path(filename_in)
 	if filename_out:
-		filename = path.replace(source_directory + '/', '')
 		filename_out = filename_out.replace(source_directory, destination_directory)
-		process_document(filename_in, filename_out, prepare_page_taglist(filename))
+		process_document(filename_in, filename_out, prepare_page_taglist(filename_in))
 	else:
 		print('ignore: %s' % (filename_in))
 
@@ -388,12 +475,13 @@ def prepare_taglist(ids):
 	return s
 
 def prepare_page_taglist(filename_in):
-	if not (filename_in in global_meta):
+	meta = get_meta_for_source(filename_in)
+	if not meta:
 		return None
-	if not ('tags' in global_meta[filename_in]):
+	if not ('tags' in meta):
 		return None
 	ids = []
-	for tag in global_meta[filename_in]['tags']:
+	for tag in meta['tags']:
 		ids.append(tag)
 	return prepare_taglist(ids)
 
@@ -602,6 +690,9 @@ def main(arg = None):
 	parser.add_argument('--copy',
 		action = 'store_true',
 		help = 'Copies files from "static" to "destination".')
+	parser.add_argument('--plugins',
+		action = 'store_true',
+		help = 'Copies plugin files.')
 	parser.add_argument('--pandoc',
 		nargs = 1,
 		help = 'path to the pandoc binary')
@@ -628,7 +719,7 @@ def main(arg = None):
 	config = Config(config_filename)
 
 	# collect information
-	global_meta, tags, years = collect_information(config.get_source())
+	global_meta, tags, years, plugins = collect_information(config.get_source())
 
 	# render global lists
 	global_taglist = prepare_global_taglist(tags)
@@ -651,7 +742,9 @@ def main(arg = None):
 		process_front()
 		process_redirect(config.get_destination())
 		args.copy = True
+		args.plugins = True
 
+	# copy files
 	if args.copy:
 		print('copy files')
 
@@ -663,6 +756,12 @@ def main(arg = None):
 		else:
 			copytree(config.get_source(), config.get_destination(),
 				ignore = make_exclude_file_func(config.get_source_process_filetypes()))
+
+	# copy plugins
+	if args.plugins:
+		print('copy plugins')
+		for plugin in plugins:
+			copy_plugin_files(plugin)
 
 if __name__ == '__main__':
 	status = main()
