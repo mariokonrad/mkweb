@@ -24,9 +24,19 @@ class Config:
 			text = config_file.read()
 			self.data = yaml.load(text)
 
-	def get(self, field, default_value):
+	def get(self, field, default_value = None):
 		if self.data and (field in self.data):
 			return self.data[field]
+		return default_value
+
+	def get_themed(self, field, default_value = None):
+		if not self.data:
+			return None
+		if not 'theme-config' in self.data:
+			return None
+		for f in self.data['theme-config']:
+			if field in f:
+				return f[field]
 		return default_value
 
 	def get_source(self):
@@ -116,6 +126,14 @@ class Config:
 					return direction
 		return 'ascending'
 
+	# theme specific
+	def get_site_title_background(self):
+		return self.get_themed('site_title_background')
+
+	# theme specific
+	def get_copyright(self):
+		return self.get_themed('copyright')
+
 #
 # global data
 #
@@ -146,7 +164,10 @@ class System:
 
 	@staticmethod
 	def get_theme_footer():
-		return System.get_theme_path() + 'footer.html'
+		path = System.get_theme_path() + 'footer.html'
+		if os.path.exists(path):
+			return path
+		return None
 
 	@staticmethod
 	def get_plugin_style(plugin):
@@ -342,8 +363,11 @@ def conversion_necessary(filename_in, filename_out):
 		return True
 	if mtime_out < os.path.getmtime(System.get_theme_style()):
 		return True
-	if mtime_out < os.path.getmtime(System.get_theme_footer()):
-		return True
+
+	if System.get_theme_footer():
+		if mtime_out < os.path.getmtime(System.get_theme_footer()):
+			return True
+
 	return False
 
 def get_meta_for_source(filename_in):
@@ -390,7 +414,6 @@ def process_document(filename_in, filename_out, pagetags = None):
 		'-t', 'html5',
 		'-o', filename_out,
 		'-H', System.get_theme_style(),
-		'-A', System.get_theme_footer(),
 		'-M', 'title-prefix=' + config.get_site_title(),
 		'-V', 'siteurl=' + config.get_site_url(),
 		'-V', 'sitetitle=' + config.get_site_title(),
@@ -400,7 +423,11 @@ def process_document(filename_in, filename_out, pagetags = None):
 		'--toc', '--toc-depth=2',
 		'--mathml'
 		]
-	if config.get_site_subtitle() != None:
+
+	if System.get_theme_footer():
+		params.extend(['-A', System.get_theme_footer()])
+
+	if config.get_site_subtitle():
 		params.extend(['-V', 'sitesubtitle=' + config.get_site_subtitle()])
 	if config.get_tags_enable():
 		params.extend(['-V', 'globaltags=' + global_taglist])
@@ -420,6 +447,13 @@ def process_document(filename_in, filename_out, pagetags = None):
 		for plugin in meta['plugins']:
 			params.extend(['-H', System.get_plugin_style(plugin)])
 			params.extend(['-V', 'header-string=' + create_header_for_plugin(plugin)])
+
+	# theme specific stuff
+
+	if config.get_site_title_background():
+		params.extend(['-V', 'sitetitle-background=' + config.get_site_title_background()])
+	if config.get_copyright():
+		params.extend(['-V', 'copyright=' + config.get_copyright()])
 
 	# execute final conversion to HTML
 
