@@ -1,0 +1,6 @@
+---
+title: Inhalt
+author: %s
+date: %s
+language: de
+---

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="generator" content="pandoc">
+$for(author-meta)$
+	<meta name="author" content="$author-meta$">
+$endfor$
+$for(tags)$
+	<meta name="tag" content="$tags$">
+$endfor$
+	<title>$if(title-prefix)$$title-prefix$ - $endif$$pagetitle$</title>
+	<style type="text/css">code{white-space: pre;}</style>
+$if(quotes)$
+	<style type="text/css">q { quotes: "“" "”" "‘" "’"; }</style>
+$endif$
+$if(highlighting-css)$
+	<style type="text/css">
+	$highlighting-css$
+	</style>
+$endif$
+
+$for(css)$
+	<link rel="stylesheet" href="$css$">
+$endfor$
+$if(math)$
+	$math$
+$endif$
+$for(header-includes)$
+	$header-includes$
+$endfor$
+$if(header-string)$
+	$header-string$
+$endif$
+</head>
+<body>
+	<div id="sitetitle" style="background: url($siteurl$$sitetitle-background$);">
+		<a href="$siteurl$">$sitetitle$</a>
+		$if(sitesubtitle)$
+		<br><span id="sitesubtitle">$sitesubtitle$</span>
+		$endif$
+		$if(menu)$
+		<div id="menu">$menu$</div>
+		$endif$
+	</div>
+	<div id="sidebar">
+		$if(globaltags)$
+			<div id="globaltags">
+				<b>Tags</b>
+				$globaltags$
+			</div>
+		$endif$
+		$if(pagetags)$
+			<div id="tags">
+				<b>Seite&nbsp;Tags</b>
+				$pagetags$
+			</div>
+		$endif$
+		$if(globalyears)$
+			<div id="globalyears">
+				<b>Jahr</b>
+				$globalyears$
+			</div>
+		$endif$
+		$if(globalpagelist)$
+		<div id="globalpagelist">
+			<b>Seiten</b>
+			$globalpagelist$
+		</div>
+		$endif$
+		$if(social)$
+			<div id="social">
+				<b>Social</b>
+				$social$
+			</div>
+		$endif$
+	</div>
+	<div id="contents">
+		<div id="pagetitle">$title$</div>
+		<div id="meta">
+			$if(date)$
+				$date$
+			$endif$
+			$for(author)$
+				 $author$
+			$endfor$
+		</div>
+
+		$if(summary)$
+			<div id="summary">
+			$summary$
+			</div>
+		$endif$
+		$if(toc)$
+			<div id="toc">
+			$toc$
+			</div>
+		$endif$
+
+		$for(include-before)$
+			$include-before$
+		$endfor$
+
+		$body$
+
+	</div>
+	$if(include-after)$
+		<div id="footer">
+		$for(include-after)$
+			$include-after$
+		$endfor$
+		</div>
+	$endif$
+	$if(copyright)$
+		<div id="copyright">
+		&copy; $copyright$
+		</div>
+	$endif$
+</body>
+</html>

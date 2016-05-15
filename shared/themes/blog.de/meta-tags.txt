@@ -1,0 +1,6 @@
+---
+title: "Tag Übersicht: %s"
+author: %s
+date: %s
+language: de
+---

@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 import shutil
 import argparse
+import codecs
 
 
 class Config:
@@ -68,6 +69,9 @@ class Config:
 
 	def get_site_subtitle(self):
 		return self.get('site_subtitle', None)
+
+	def get_language(self):
+		return self.get('language', '')
 
 	def get_theme(self):
 		return self.get('theme', 'default')
@@ -148,6 +152,10 @@ pandoc_bin = 'pandoc'
 class System:
 	@staticmethod
 	def get_theme_path():
+		path = os.path.dirname(os.path.realpath(__file__)) + '/../shared/themes/' \
+			+ config.get_theme() + '.' + config.get_language() + '/'
+		if os.path.exists(path):
+			return path
 		return os.path.dirname(os.path.realpath(__file__)) + '/../shared/themes/' + config.get_theme() + '/'
 
 	@staticmethod
@@ -552,18 +560,60 @@ def prepare_global_pagelist():
 	s += '</ul>\n'
 	return s
 
+def get_meta_tags():
+	meta_info = """
+---
+title: "Tag Overview: %s"
+author: %s
+date: %s
+language: en
+---
+"""
+	path = System.get_theme_path() + 'meta-tags.txt'
+	if os.path.exists(path):
+		with codecs.open(path, 'r', 'utf8') as f:
+			meta_info = f.read()
+	return meta_info
+
+def get_meta_years():
+	meta_info = """
+---
+title: "Year Overview: %s"
+author: %s
+date: %s
+language: en
+---
+"""
+	path = System.get_theme_path() + 'meta-years.txt'
+	if os.path.exists(path):
+		with codecs.open(path, 'r', 'utf8') as f:
+			meta_info = f.read()
+	return meta_info
+
+def get_meta_contents():
+	meta_info = """
+---
+title: Contents
+author: %s
+date: %s
+language: en
+---
+"""
+	path = System.get_theme_path() + 'meta-contents.txt'
+	if os.path.exists(path):
+		with codecs.open(path, 'r', 'utf8') as f:
+			meta_info = f.read()
+	return meta_info
+
+def get_date_str_today():
+	return datetime.date.today().strftime("%Y-%m-%d")
+
 def process_tags(tags):
 	"""
 	creates processed tag files, containing links to all pages for the tags
 	"""
-	file_meta_info = """
----
-title: "Tag Overview: %s"
-author: %s
-date: 2000-00-00
-language: en
----
-"""
+	date_str = get_date_str_today()
+	file_meta_info = get_meta_tags()
 	path = config.get_destination() + '/tag'
 	ensure_path(path + '/')
 	tmp = tempfile.mkdtemp()
@@ -571,7 +621,7 @@ language: en
 		filename = tmp + '/' + tag + '.md'
 		try:
 			f = open(filename, 'w+')
-			f.write((file_meta_info % (tag, config.get_author())).encode('utf8'))
+			f.write((file_meta_info % (tag, config.get_author(), date_str)).encode('utf8'))
 			for info in sorted(tags[tag], key = lambda x : x['meta']['title']):
 				title = info['meta']['title']
 				link = config.get_source() + '/' + info['filename'].replace('.md', '.html')
@@ -587,14 +637,8 @@ def process_years(years):
 	"""
 	creates processed year files, containing link to all pages for the years
 	"""
-	file_meta_info = """
----
-title: "Year Overview: %s"
-author: %s
-date: 2000-00-00
-language: en
----
-"""
+	date_str = get_date_str_today()
+	file_meta_info = get_meta_years()
 	path = config.get_destination() + '/year'
 	ensure_path(path + '/')
 	tmp = tempfile.mkdtemp()
@@ -602,14 +646,14 @@ language: en
 		filename = tmp + '/' + str(year) + '.md'
 		try:
 			f = open(filename, 'w+')
-			f.write((file_meta_info % (year, config.get_author())).encode('utf8'))
+			f.write((file_meta_info % (year, config.get_author(), date_str)).encode('utf8'))
 			for info in sorted(years[year], key = lambda x : x['meta']['title']):
 				title = info['meta']['title']
 				link = config.get_source() + '/' + info['filename'].replace('.md', '.html')
 				f.write(('- [%s](%s)\n' % (title, link)).encode('utf8'))
 			f.close()
 		except:
-			shutil.rmtree(tmp)
+			#shutil.rmtree(tmp)
 			raise IOError('error in processing tag files')
 	process_pages(tmp, path)
 	shutil.rmtree(tmp)
@@ -633,14 +677,7 @@ def process_front():
 	"""
 	creates front page
 	"""
-	file_meta_info = """
----
-title: Contents
-author: %s
-date: 2016-01-01
-language: en
----
-"""
+	date_str = get_date_str_today()
 
 	# collect map date->filename
 	dates = {}
@@ -658,7 +695,7 @@ language: en
 	try:
 		index_filename = tmp + '/index.md'
 		f = open(index_filename, 'w+')
-		f.write((file_meta_info % (config.get_author())).encode('utf8'))
+		f.write((get_meta_contents() % (config.get_author(), date_str)).encode('utf8'))
 		f.write(('Newest Entries:\n\n').encode('utf8'));
 		count = 0
 		for d in sorted_dates:
