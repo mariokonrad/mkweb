@@ -1,7 +1,7 @@
 .PHONY: all clean webclean clean-all
 
 CXX=g++-5
-CXXFLAGS=-Wall -Wextra -pedantic -O2 -ggdb -std=c++11 -static
+CXXFLAGS=-Wall -Wextra -pedantic -O0 -ggdb -std=c++11 -static
 
 STRIP=strip
 STRIPFLAGS=-s
@@ -17,6 +17,9 @@ meta : src/meta.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^ -Isrc -I`pwd`/local/include -L`pwd`/local/lib -lyaml-cpp
 	$(STRIP) $(STRIPFLAGS) $@
 
+config : src/config.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $^ -Isrc -I`pwd`/local/include -L`pwd`/local/lib -lyaml-cpp
+
 yaml :
 	mkdir local
 	mkdir build
@@ -26,10 +29,11 @@ yaml :
 	rm -fr build
 
 clean :
+	rm -fr build
 	rm -f *.o
 	rm -f filter
 	rm -f meta
-	rm -fr build
+	rm -f config
 
 clean-all : clean
 	rm -fr local
