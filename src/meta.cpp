@@ -2,7 +2,7 @@
 #include <fstream>
 #include <string>
 #include <yaml-cpp/yaml.h>
-#include "cxxopts.hpp"
+#include "cxxopts/cxxopts.hpp"
 
 int main(int argc, char ** argv)
 {

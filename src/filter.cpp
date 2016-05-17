@@ -3,8 +3,8 @@
 #include <string>
 #include <map>
 #include <stdexcept>
-#include "json.hpp"
-#include "cxxopts.hpp"
+#include "json/json.hpp"
+#include "cxxopts/cxxopts.hpp"
 
 using json = nlohmann::json;
 
