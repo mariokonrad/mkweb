@@ -1,13 +1,12 @@
-.PHONY: all clean webclean clean-all
+.PHONY: default clean clean-all mkweb
 
 CXX=g++-5
-CXXFLAGS=-Wall -Wextra -pedantic -O0 -ggdb -std=c++14 -static
+CXXFLAGS=-Wall -Wextra -pedantic -O3 -ggdb -std=c++14 -static
 
 STRIP=strip
 STRIPFLAGS=-s
 
-all :
-	@echo "error: specify a specific target"
+default : mkweb
 
 filter : src/filter.cpp
 	$(CXX) $(CXXFLAGS) -Isrc -o $@ $^
@@ -17,17 +16,13 @@ meta : src/meta.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^ -Isrc -I`pwd`/local/include -L`pwd`/local/lib -lyaml-cpp
 	$(STRIP) $(STRIPFLAGS) $@
 
-configdump : config.o system.o configdump.o
+mkweb : bin/mkwebc
+
+bin/mkwebc : config.o fs_util.o system.o mkweb.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ -L`pwd`/local/lib -lyaml-cpp -lboost_filesystem -lboost_system
+
+configdump : config.o fs_util.o system.o configdump.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ -L`pwd`/local/lib -lyaml-cpp
-
-system.o : src/system.cpp
-	$(CXX) $(CXXFLAGS) -o $@ -c $< -Isrc -I`pwd`/local/include
-
-config.o : src/config.cpp
-	$(CXX) $(CXXFLAGS) -o $@ -c $< -Isrc -I`pwd`/local/include
-
-configdump.o : src/configdump.cpp
-	$(CXX) $(CXXFLAGS) -o $@ -c $< -Isrc -I`pwd`/local/include
 
 yaml :
 	mkdir local
@@ -43,7 +38,11 @@ clean :
 	rm -f filter
 	rm -f meta
 	rm -f configdump
+	rm -f bin/mkwebc
 
 clean-all : clean
 	rm -fr local
+
+%.o : src/%.cpp
+	$(CXX) $(CXXFLAGS) -o $@ -c $< -Isrc -I`pwd`/local/include
 
