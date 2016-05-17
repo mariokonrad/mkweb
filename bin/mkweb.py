@@ -35,9 +35,8 @@ class Config:
 			return None
 		if not 'theme-config' in self.data:
 			return None
-		for f in self.data['theme-config']:
-			if field in f:
-				return f[field]
+		if field in self.data['theme-config']:
+			return self.data['theme-config'][field]
 		return default_value
 
 	def get_source(self):
