@@ -3,7 +3,12 @@
 
 #include <string>
 #include <vector>
-#include <yaml-cpp/yaml.h>
+#include <memory>
+
+namespace YAML
+{
+class Node; // forward declaration
+}
 
 namespace mkweb
 {
@@ -22,6 +27,8 @@ public:
 		sort_direction dir;
 		std::string key;
 	};
+
+	~config();
 
 	config(const std::string & filename);
 
@@ -67,7 +74,9 @@ public:
 	std::string get_copyright() const;
 
 private:
-	YAML::Node node_;
+	std::unique_ptr<YAML::Node> node_;
+
+	const YAML::Node & node() const;
 
 	std::string get_str(const std::string & tag, const std::string & default_value) const;
 	int get_int(const std::string & tag, int default_value) const;

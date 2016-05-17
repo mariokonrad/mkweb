@@ -1,5 +1,6 @@
 #include "config.hpp"
 #include <algorithm>
+#include <yaml-cpp/yaml.h>
 
 namespace mkweb
 {
@@ -12,7 +13,14 @@ static bool in(const typename Container::value_type & element, const Container &
 }
 }
 
-config::config(const std::string & filename) { node_ = YAML::LoadFile(filename); }
+config::~config() {}
+
+config::config(const std::string & filename)
+{
+	node_ = std::make_unique<YAML::Node>(YAML::LoadFile(filename));
+}
+
+const YAML::Node & config::node() const { return *node_; }
 
 std::string config::get_source() const { return get_str("source", "pages"); }
 
@@ -47,7 +55,7 @@ int config::get_num_news() const { return get_int("num_news", 8); }
 
 std::vector<std::string> config::get_source_process_filetypes() const
 {
-	const auto & types = node_["source-process-filetypes"];
+	const auto & types = node()["source-process-filetypes"];
 
 	std::vector<std::string> result;
 	if (types && types.IsSequence()) {
@@ -63,7 +71,7 @@ std::vector<std::string> config::get_source_process_filetypes() const
 
 std::vector<config::path_map_entry> config::get_path_map() const
 {
-	const auto & pmap = node_["path_map"];
+	const auto & pmap = node()["path_map"];
 
 	std::vector<path_map_entry> entries;
 	if (pmap && pmap.IsSequence()) {
@@ -103,7 +111,7 @@ config::pagelist_sort_desc config::get_pagelist_sort() const
 	static const std::vector<std::string> valid_directions = {"ascending", "descending"};
 	static const std::vector<std::string> valid_keys = {"title", "date"};
 
-	const auto & pls = node_["pagelist-sort"];
+	const auto & pls = node()["pagelist-sort"];
 
 	pagelist_sort_desc result{sort_direction::ascending, "title"};
 
@@ -135,22 +143,22 @@ std::string config::get_copyright() const { return get_themed("copyright"); }
 
 std::string config::get_str(const std::string & tag, const std::string & default_value) const
 {
-	return (node_[tag] && node_[tag].IsScalar()) ? node_[tag].as<std::string>() : default_value;
+	return (node()[tag] && node()[tag].IsScalar()) ? node()[tag].as<std::string>() : default_value;
 }
 
 int config::get_int(const std::string & tag, int default_value) const
 {
-	return (node_[tag] && node_[tag].IsScalar()) ? node_[tag].as<int>() : default_value;
+	return (node()[tag] && node()[tag].IsScalar()) ? node()[tag].as<int>() : default_value;
 }
 
 bool config::get_bool(const std::string & tag, bool default_value) const
 {
-	return (node_[tag] && node_[tag].IsScalar()) ? node_[tag].as<bool>() : default_value;
+	return (node()[tag] && node()[tag].IsScalar()) ? node()[tag].as<bool>() : default_value;
 }
 
 std::string config::get_themed(const std::string field, const std::string & default_value) const
 {
-	const auto & tc = node_["theme-config"];
+	const auto & tc = node()["theme-config"];
 	if (!tc)
 		return default_value;
 

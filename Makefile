@@ -1,7 +1,7 @@
 .PHONY: all clean webclean clean-all
 
 CXX=g++-5
-CXXFLAGS=-Wall -Wextra -pedantic -O0 -ggdb -std=c++11 -static
+CXXFLAGS=-Wall -Wextra -pedantic -O0 -ggdb -std=c++14 -static
 
 STRIP=strip
 STRIPFLAGS=-s
