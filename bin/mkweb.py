@@ -83,7 +83,7 @@ class Config:
 		return self.get('num_news', 8)
 
 	def get_source_process_filetypes(self):
-		return self.get('source-process_filetypes', ['.md'])
+		return self.get('source-process-filetypes', ['.md'])
 
 	def get_path_map(self):
 		return self.get('path_map', [])
