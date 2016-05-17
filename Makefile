@@ -17,8 +17,15 @@ meta : src/meta.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^ -Isrc -I`pwd`/local/include -L`pwd`/local/lib -lyaml-cpp
 	$(STRIP) $(STRIPFLAGS) $@
 
-config : src/config.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $^ -Isrc -I`pwd`/local/include -L`pwd`/local/lib -lyaml-cpp
+configdump : config.o configdump.o
+	#$(CXX) $(CXXFLAGS) -o $@ $^ -Isrc -I`pwd`/local/include -L`pwd`/local/lib -lyaml-cpp
+	$(CXX) $(CXXFLAGS) -o $@ $^ -L`pwd`/local/lib -lyaml-cpp
+
+config.o : src/config.cpp
+	$(CXX) $(CXXFLAGS) -o $@ -c $< -Isrc -I`pwd`/local/include
+
+configdump.o : src/configdump.cpp
+	$(CXX) $(CXXFLAGS) -o $@ -c $< -Isrc -I`pwd`/local/include
 
 yaml :
 	mkdir local
@@ -33,7 +40,7 @@ clean :
 	rm -f *.o
 	rm -f filter
 	rm -f meta
-	rm -f config
+	rm -f configdump
 
 clean-all : clean
 	rm -fr local
