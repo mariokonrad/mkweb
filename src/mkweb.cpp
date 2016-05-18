@@ -1,14 +1,36 @@
 #include <iostream>
 #include <fstream>
-#include <boost/filesystem.hpp>
+#include <unordered_map>
+#include <unordered_set>
+#include <boost/filesystem.hpp> // a shame this is needed
 #include <cxxopts/cxxopts.hpp>
+#include <yaml-cpp/yaml.h>
 #include "system.hpp"
 #include "config.hpp"
 #include "fs_util.hpp"
+#include "posix_time.hpp"
 
 namespace mkweb
 {
-static std::string read_meta_from_markdown(const std::string & path)
+struct meta_info
+{
+	posix_time date;
+	std::string title;
+	std::vector<std::string> authors;
+	std::vector<std::string> tags;
+	std::string language;
+	std::string summary;
+	std::vector<std::string> plugins;
+};
+
+static struct {
+	std::unordered_map<std::string, meta_info> meta;
+	std::unordered_set<std::string> plugins;
+	std::unordered_map<std::string, std::vector<std::string>> tags;
+	std::unordered_map<uint32_t, std::vector<std::string>> years;
+} global;
+
+static std::string read_meta_string_from_markdown(const std::string & path)
 {
 	std::ifstream ifs{path.c_str()};
 
@@ -22,6 +44,58 @@ static std::string read_meta_from_markdown(const std::string & path)
 	return contents;
 }
 
+template <class Container>
+static void collect(const YAML::Node & node, Container & c)
+{
+	if (!node)
+		return;
+
+	if (node.IsScalar()) {
+		c.push_back(node.as<std::string>());
+	} else if (node.IsSequence()) {
+		for (const auto & entry : node) {
+			c.push_back(entry.as<std::string>());
+		}
+	}
+}
+
+static void collect(const YAML::Node & node, std::string & s)
+{
+	if (!node)
+		return;
+
+	if (node.IsScalar())
+		s = node.as<std::string>();
+}
+
+static meta_info read_meta(const std::string & path)
+{
+	// TODO: handle different file types besides markdown, depending on extension
+
+	const auto txt = read_meta_string_from_markdown(path);
+	const auto doc = YAML::Load(txt);
+
+	meta_info info;
+
+	if (!doc["title"])
+		throw std::runtime_error{"essential information missing: 'title'"};
+
+	collect(doc["title"], info.title);
+	collect(doc["author"], info.authors);
+	collect(doc["tags"], info.tags);
+	collect(doc["plugins"], info.plugins);
+	collect(doc["language"], info.language);
+	collect(doc["summary"], info.summary);
+
+	if (doc["date"]) {
+		info.date = posix_time::from_string(doc["date"].as<std::string>());
+	} else {
+		info.date = posix_time::from_string("2000-01-01 00:00");
+	}
+
+	return info;
+}
+
 static void collect_information(const std::string & source_root_directory)
 {
 	namespace fs = boost::filesystem;
@@ -31,51 +105,29 @@ static void collect_information(const std::string & source_root_directory)
 	if (!fs::exists(source_path) || !fs::is_directory(source_path))
 		return;
 
-	// TODO
+	for (auto it = fs::recursive_directory_iterator{source_path};
+		 it != fs::recursive_directory_iterator{}; ++it) {
 
-	for (auto dir = fs::recursive_directory_iterator{source_path};
-		 dir != fs::recursive_directory_iterator{}; ++dir) {
-		const fs::path path = dir->path();
-		if (!fs::is_regular_file(path))
+		// TODO: handle absolute paths?
+
+		if (!fs::is_regular_file(it->path()))
 			continue;
 
-		std::cerr << path << '\n';
-		/*
-		filename = dirname + '/' + fn
-		rel_filename = os.path.relpath(dirname, root_directory) + '/' + fn
-		meta = read_meta(filename)
+		try {
+			const auto path = it->path().string();
+			const auto info = read_meta(path);
 
-		# if a file does not provide metadata, there is nothing
-		# we can do at this point
-		if meta == None:
-			continue
+			global.meta[path] = info;
+			for (const auto & plugin : info.plugins)
+				global.plugins.insert(plugin);
+			for (const auto & tag : info.tags)
+				global.tags[tag].push_back(path);
+			global.years[info.date.year()].push_back(path);
 
-		# replace 'date' entry with datetime
-		if 'date' in meta:
-			meta['date'] = make_datetime(meta['date'])
-
-		# read meta data and remember general file information
-		info[rel_filename] = meta
-
-		# collect plugins
-		if 'plugins' in meta:
-			for plugin in meta['plugins']:
-				plugins.add(plugin)
-
-		# check and extract tags
-		if 'tags' in meta:
-			for tag in meta['tags']:
-				if not tag in tags:
-					tags[tag] = []
-				tags[tag].append({'filename':rel_filename, 'meta':meta})
-
-		# check and extract date tags
-		if 'date' in meta:
-			d = meta['date']
-			if d.year not in years:
-				years[d.year] = []
-			years[d.year].append({'filename':rel_filename, 'meta':meta})
-		*/
+		} catch (...) {
+			// no relevant meta data found for file, there is nothing to be done
+			continue;
+		}
 	}
 }
 }

@@ -4,3 +4,4 @@ filter
 meta
 configdump
 *.o
+bin/mkwebc
