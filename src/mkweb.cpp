@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <unordered_map>
 #include <unordered_set>
 #include <experimental/filesystem>
@@ -32,6 +33,10 @@ static struct {
 	std::unordered_set<std::string> plugins;
 	std::unordered_map<std::string, std::vector<std::string>> tags;
 	std::unordered_map<uint32_t, std::vector<std::string>> years;
+
+	std::string tag_list;
+	std::string year_list;
+	std::string page_list;
 } global;
 
 static std::string read_meta_string_from_markdown(const std::string & path)
@@ -134,6 +139,113 @@ static void collect_information(const std::string & source_root_directory)
 		}
 	}
 }
+
+static std::string prepare_tag_list(std::vector<std::string> tags)
+{
+	const auto site_url = system::cfg().get_site_url();
+
+	std::sort(begin(tags), end(tags));
+
+	std::ostringstream os;
+	os << "<ul>";
+	for (const auto & tag : tags) {
+		os << "<li><a href=\"" << site_url << "tag/" << tag << ".html\">" << tag << "</a></li>";
+	}
+	os << "</ul>";
+	return os.str();
+}
+
+static std::string prepare_global_tag_list(
+	const std::unordered_map<std::string, std::vector<std::string>> & tags)
+{
+	std::vector<std::string> ids;
+	ids.reserve(tags.size());
+	for (const auto & tag : tags)
+		ids.push_back(tag.first);
+	return prepare_tag_list(ids);
+}
+
+static std::string prepare_global_year_list(
+	const std::unordered_map<uint32_t, std::vector<std::string>> & years)
+{
+	const auto site_url = system::cfg().get_site_url();
+
+	std::vector<uint32_t> ids;
+	ids.reserve(years.size());
+	for (const auto & year : years)
+		ids.push_back(year.first);
+
+	std::sort(rbegin(ids), rend(ids));
+
+	std::ostringstream os;
+	os << "<br>";
+	for (const auto year : ids) {
+		os << "<a href=\"" << site_url << "year/" << year << ".html\">" << year << "</a>";
+		os << ' ';
+	}
+	return os.str();
+}
+
+template <class Container>
+static bool contains(
+	const typename Container::value_type & element, const Container & container)
+{
+	return std::find(begin(container), end(container), element) != end(container);
+}
+
+static std::string convert_path(const std::string & fn)
+{
+	std::filesystem::path path{fn};
+	if (contains(path.extension().string(), system::cfg().get_source_process_filetypes())) {
+		path.replace_extension(".html");
+	}
+	return path.string();
+}
+
+static std::string prepare_global_pagelist(
+	const std::unordered_map<std::string, meta_info> & meta)
+{
+	const auto sort_desc = system::cfg().get_pagelist_sort();
+
+	// extract sorting criteria, build map key->filename
+	std::vector<std::pair<std::string, std::string>> ids;
+	if (sort_desc.key == "date") {
+		for (const auto & fn : meta) {
+			ids.push_back(std::make_pair(fn.second.date.str(), fn.first));
+		}
+	} else if (sort_desc.key == "title") {
+		for (const auto & fn : meta) {
+			ids.push_back(std::make_pair(fn.second.title, fn.first));
+		}
+	} else {
+		throw std::runtime_error{"sort key not supported: " + sort_desc.key};
+	}
+
+	// sort ids
+	switch (sort_desc.dir) {
+		case config::sort_direction::ascending:
+			std::sort(begin(ids), end(ids),
+				[](const auto & a, const auto & b) { return a.first < b.first; });
+			break;
+		case config::sort_direction::descending:
+			std::sort(begin(ids), end(ids),
+				[](const auto & a, const auto & b) { return a.first > b.first; });
+			break;
+	}
+
+	// generate HTML list of sorted entries
+	const auto site_url = system::cfg().get_site_url();
+	std::ostringstream os;
+	os << "<ul>";
+	for (const auto & entry : ids) {
+		const auto filename = entry.second;
+		const auto title = meta.find(filename)->second.title; // single-thread, still valid
+		os << "<li><a href=\"" << site_url << convert_path(filename) << "\">" << title
+		   << "</a></li>";
+	}
+	os << "</ul>";
+	return os.str();
+}
 }
 
 int main(int argc, char ** argv)
@@ -178,7 +290,17 @@ int main(int argc, char ** argv)
 	// read configuration
 	system::reset(std::make_shared<config>(config_filename));
 
+	// collect and prepare information
 	collect_information(system::cfg().get_source());
+	global.tag_list = prepare_global_tag_list(global.tags);
+	global.year_list = prepare_global_year_list(global.years);
+	global.page_list = prepare_global_pagelist(global.meta);
+
+	// TODO: generate site
+
+	// TODO: copy files
+
+	// TODO: copy plugins
 
 	return 0;
 }

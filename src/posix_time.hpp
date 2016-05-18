@@ -19,7 +19,7 @@ public:
 
 	std::string str() const
 	{
-		char buf[128];
+		char buf[32];
 		::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M", &t);
 		return std::string{buf};
 	}
