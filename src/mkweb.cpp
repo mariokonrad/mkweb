@@ -197,9 +197,9 @@ static std::string convert_path(const std::string & fn)
 {
 	std::filesystem::path path{fn};
 	if (contains(path.extension().string(), system::cfg().get_source_process_filetypes())) {
-		path.replace_extension(".html");
+		return path.replace_extension(".html").string();
 	}
-	return path.string();
+	return std::string{};
 }
 
 static std::string prepare_global_pagelist(
@@ -246,6 +246,21 @@ static std::string prepare_global_pagelist(
 	os << "</ul>";
 	return os.str();
 }
+
+static void process_single(const std::string & source_directory,
+	const std::string & destination_directory, const std::string & filename_in)
+{
+	const auto filename_out = convert_path(filename_in);
+
+	if (!filename_out.empty()) {
+		/* TODO
+		filename_out = filename_out.replace(source_directory, destination_directory)
+		process_document(filename_in, filename_out, prepare_page_taglist(filename_in))
+		*/
+	} else {
+		std::cout << "ignore: " << filename_in << '\n';
+	}
+}
 }
 
 int main(int argc, char ** argv)
@@ -254,18 +269,31 @@ int main(int argc, char ** argv)
 
 	std::string config_filename = "config.yml";
 	std::string config_pandoc = "";
+	std::string config_file;
+	bool config_copy = false;
+	bool config_plugins = false;
 
 	// clang-format off
 	cxxopts::Options options{argv[0], " - configuration read demo"};
 	options.add_options()
 		("h,help",
-			"shows help information")
+			"Shows help information")
 		("c,config",
-			"read config from the specified file",
+			"Read config from the specified file",
 			cxxopts::value<std::string>(config_filename))
 		("pandoc",
-			"specify pandoc binary to use",
+			"Specify pandoc binary to use",
 			cxxopts::value<std::string>(config_pandoc))
+		("file",
+			"Specify a file or directory to process. This file or directory must be a "
+			"part of the configured source directory within the configuration file.",
+			cxxopts::value<std::string>(config_file))
+		("copy",
+			"Copies files from 'static' to 'destination'.",
+			cxxopts::value<bool>(config_copy))
+		("plugins",
+			"Copies plugin files.",
+			cxxopts::value<bool>(config_plugins))
 		;
 	// clang-format on
 
@@ -296,11 +324,41 @@ int main(int argc, char ** argv)
 	global.year_list = prepare_global_year_list(global.years);
 	global.page_list = prepare_global_pagelist(global.meta);
 
-	// TODO: generate site
+	// generate site
+	if (!config_file.empty()) {
+		if (!std::filesystem::exists(config_file))
+			throw std::runtime_error{"specified file does not exist: " + config_file};
+		if (std::filesystem::is_directory(config_file)) {
+			// TODO
+			//process_pages(config.get_source(), config.get_destination(), specific_dir = path)
+		} else if (std::filesystem::is_regular_file(config_file)) {
+			// TODO
+			//process_single(system::cfg().get_source(), system::cfg().get_destination(), config_file)
+		} else {
+			throw std::runtime_error{"unable to process file type"};
+		}
+	} else {
+		// TODO
+		//process_tags(tags)
+		//process_years(years)
+		//process_pages(config.get_source(), config.get_destination())
+		//process_front()
+		//process_redirect(config.get_destination())
+		config_copy = true;
+		config_plugins = true;
+	}
 
-	// TODO: copy files
+	// copy files
+	if (config_copy) {
+		std::cout << "copy files\n";
+		// TODO
+	}
 
-	// TODO: copy plugins
+	// copy plugins
+	if (config_plugins) {
+		std::cout << "copy plugins\n";
+		// TODO
+	}
 
 	return 0;
 }
