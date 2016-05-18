@@ -18,10 +18,10 @@ meta : src/meta.cpp
 
 mkweb : bin/mkwebc
 
-bin/mkwebc : config.o fs_util.o system.o mkweb.o
+bin/mkwebc : config.o system.o mkweb.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ -L`pwd`/local/lib -lyaml-cpp -lstdc++fs
 
-configdump : config.o fs_util.o system.o configdump.o
+configdump : config.o system.o configdump.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ -L`pwd`/local/lib -lyaml-cpp
 
 yaml :

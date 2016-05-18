@@ -1,6 +1,20 @@
 #include "system.hpp"
+#include <experimental/filesystem>
 #include "config.hpp"
-#include "fs_util.hpp"
+
+namespace std
+{
+namespace filesystem = experimental::filesystem;
+}
+
+namespace
+{
+std::string path_to_binary()
+{
+	namespace fs = std::filesystem;
+	return fs::read_symlink("/proc/self/exe").remove_filename().string();
+}
+}
 
 namespace mkweb
 {
@@ -26,7 +40,7 @@ std::string system::get_theme_path()
 	const std::string pb = path_to_binary();
 	std::string path
 		= pb + "/../shared/themes/" + cfg_->get_theme() + '.' + cfg_->get_language() + '/';
-	if (path_exists(path))
+	if (std::filesystem::exists(path))
 		return path;
 	return pb + "/../shared/themes/" + cfg_->get_theme() + '/';
 }
@@ -44,7 +58,7 @@ std::string system::get_theme_style()
 std::string system::get_theme_footer()
 {
 	const auto path = get_theme_path() + "footer.html";
-	return path_exists(path) ? path : std::string{};
+	return std::filesystem::exists(path) ? path : std::string{};
 }
 
 std::string system::pandoc() { return pandoc_; }

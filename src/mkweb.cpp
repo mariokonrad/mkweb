@@ -7,8 +7,12 @@
 #include <yaml-cpp/yaml.h>
 #include "system.hpp"
 #include "config.hpp"
-#include "fs_util.hpp"
 #include "posix_time.hpp"
+
+namespace std
+{
+namespace filesystem = experimental::filesystem;
+}
 
 namespace mkweb
 {
@@ -98,7 +102,7 @@ static meta_info read_meta(const std::string & path)
 
 static void collect_information(const std::string & source_root_directory)
 {
-	namespace fs = std::experimental::filesystem;
+	namespace fs = std::filesystem;
 
 	const fs::path source_path{source_root_directory};
 
@@ -163,10 +167,10 @@ int main(int argc, char ** argv)
 	using namespace mkweb;
 
 	// validation
-	if (!path_exists(config_filename))
+	if (!std::filesystem::exists(config_filename))
 		throw std::runtime_error{"config file not readable: " + config_filename};
 	if (config_pandoc.size()) {
-		if (!path_exists(config_pandoc))
+		if (!std::filesystem::exists(config_pandoc))
 			throw std::runtime_error{"executable not found: " + config_pandoc};
 		system::set_pandoc(config_pandoc);
 	}
