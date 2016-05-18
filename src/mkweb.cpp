@@ -3,6 +3,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
+#include <experimental/optional>
 #include <experimental/filesystem>
 #include <cxxopts/cxxopts.hpp>
 #include <yaml-cpp/yaml.h>
@@ -38,6 +39,14 @@ static struct {
 	std::string year_list;
 	std::string page_list;
 } global;
+
+static std::experimental::optional<meta_info> get_meta_for_source(const std::string & filename_in)
+{
+	const auto it = global.meta.find(filename_in);
+	if (it != global.meta.end())
+		return it->second;
+	return {};
+}
 
 static std::string read_meta_string_from_markdown(const std::string & path)
 {
@@ -142,6 +151,9 @@ static void collect_information(const std::string & source_root_directory)
 
 static std::string prepare_tag_list(std::vector<std::string> tags)
 {
+	if (tags.size() == 0)
+		return std::string{};
+
 	const auto site_url = system::cfg().get_site_url();
 
 	std::sort(begin(tags), end(tags));
@@ -247,16 +259,29 @@ static std::string prepare_global_pagelist(
 	return os.str();
 }
 
+static std::string prepare_page_tag_list(const std::string & filename_in)
+{
+	const auto meta = get_meta_for_source(filename_in);
+	if (!meta)
+		return std::string{};
+	return prepare_tag_list(meta->tags);
+}
+
+static void process_document(const std::string & filename_in, const std::string & filename_out,
+	const std::string & tags_list = std::string{})
+{
+	std::cerr << "process: " << filename_in << " -> " << filename_out << '\n';
+	// TODO
+}
+
 static void process_single(const std::string & source_directory,
 	const std::string & destination_directory, const std::string & filename_in)
 {
-	const auto filename_out = convert_path(filename_in);
+	auto filename_out = convert_path(filename_in);
 
 	if (!filename_out.empty()) {
-		/* TODO
-		filename_out = filename_out.replace(source_directory, destination_directory)
-		process_document(filename_in, filename_out, prepare_page_taglist(filename_in))
-		*/
+		filename_out = destination_directory + filename_out.substr(source_directory.size());
+		process_document(filename_in, filename_out, prepare_page_tag_list(filename_in));
 	} else {
 		std::cout << "ignore: " << filename_in << '\n';
 	}
@@ -333,7 +358,7 @@ int main(int argc, char ** argv)
 			//process_pages(config.get_source(), config.get_destination(), specific_dir = path)
 		} else if (std::filesystem::is_regular_file(config_file)) {
 			// TODO
-			//process_single(system::cfg().get_source(), system::cfg().get_destination(), config_file)
+			process_single(system::cfg().get_source(), system::cfg().get_destination(), config_file);
 		} else {
 			throw std::runtime_error{"unable to process file type"};
 		}
