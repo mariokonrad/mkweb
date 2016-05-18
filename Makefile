@@ -1,7 +1,7 @@
 .PHONY: default clean clean-all mkweb
 
 CXX=g++-5
-CXXFLAGS=-Wall -Wextra -pedantic -O3 -ggdb -std=c++14 -static
+CXXFLAGS=-Wall -Wextra -pedantic -O3 -ggdb -std=c++1z -static
 
 STRIP=strip
 STRIPFLAGS=-s
@@ -19,7 +19,7 @@ meta : src/meta.cpp
 mkweb : bin/mkwebc
 
 bin/mkwebc : config.o fs_util.o system.o mkweb.o
-	$(CXX) $(CXXFLAGS) -o $@ $^ -L`pwd`/local/lib -lyaml-cpp -lboost_filesystem -lboost_system
+	$(CXX) $(CXXFLAGS) -o $@ $^ -L`pwd`/local/lib -lyaml-cpp -lstdc++fs
 
 configdump : config.o fs_util.o system.o configdump.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ -L`pwd`/local/lib -lyaml-cpp

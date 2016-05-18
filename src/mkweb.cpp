@@ -2,7 +2,7 @@
 #include <fstream>
 #include <unordered_map>
 #include <unordered_set>
-#include <boost/filesystem.hpp> // a shame this is needed
+#include <experimental/filesystem>
 #include <cxxopts/cxxopts.hpp>
 #include <yaml-cpp/yaml.h>
 #include "system.hpp"
@@ -98,7 +98,7 @@ static meta_info read_meta(const std::string & path)
 
 static void collect_information(const std::string & source_root_directory)
 {
-	namespace fs = boost::filesystem;
+	namespace fs = std::experimental::filesystem;
 
 	const fs::path source_path{source_root_directory};
 
