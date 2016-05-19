@@ -267,11 +267,124 @@ static std::string prepare_page_tag_list(const std::string & filename_in)
 	return prepare_tag_list(meta->tags);
 }
 
+static bool conversion_necessary(const std::string & filename_in, const std::string & filename_out)
+{
+	namespace fs = std::filesystem;
+
+	if (!fs::exists(filename_in))
+		return false;
+	if (!fs::exists(filename_out))
+		return true;
+
+	const auto mtime_out = fs::last_write_time(filename_out);
+	if (mtime_out < fs::last_write_time(filename_in))
+		return true;
+	if (mtime_out < fs::last_write_time(system::get_theme_template()))
+		return true;
+	if (!system::get_theme_style().empty() && (mtime_out < fs::last_write_time(system::get_theme_style())))
+		return true;
+	if (!system::get_theme_footer().empty() && (mtime_out < fs::last_write_time(system::get_theme_footer())))
+		return true;
+
+	return false;
+}
+
+static bool ensure_path(const std::string & filename)
+{
+	namespace fs = std::filesystem;
+
+	if (filename.empty())
+		return true;
+
+	const auto path = fs::path{filename}.remove_filename();
+	if (fs::exists(path))
+		return fs::is_directory(path);
+	return fs::create_directories(path);
+}
+
 static void process_document(const std::string & filename_in, const std::string & filename_out,
 	const std::string & tags_list = std::string{})
 {
 	std::cerr << "process: " << filename_in << " -> " << filename_out << '\n';
+
+	if (!conversion_necessary(filename_in, filename_out)) {
+		std::cout << "skip    " << filename_out << '\n';
+		return;
+	}
+
+	std::cout << "        " << filename_out << '\n';
+	ensure_path(filename_out);
+
 	// TODO
+	/*
+	# conversion from source file to JSON
+
+	params = [pandoc_bin, '-t', 'json', filename_in]
+	text = subprocess.Popen(params, stdout = subprocess.PIPE).communicate()[0]
+
+	# process JSON AST
+
+	j = json.loads(text)
+	recursive_search_links(j)
+
+	# prepare final conversion parameter
+
+	params = [pandoc_bin,
+		'-f', 'json',
+		'-t', 'html5',
+		'-o', filename_out,
+		'-H', System.get_theme_style(),
+		'-M', 'title-prefix=' + config.get_site_title(),
+		'-V', 'siteurl=' + config.get_site_url(),
+		'-V', 'sitetitle=' + config.get_site_title(),
+		'--template', System.get_theme_template(),
+		'--standalone',
+		'--preserve-tabs',
+		'--toc', '--toc-depth=2',
+		'--mathml'
+		]
+
+	if System.get_theme_footer():
+		params.extend(['-A', System.get_theme_footer()])
+
+	if config.get_site_subtitle():
+		params.extend(['-V', 'sitesubtitle=' + config.get_site_subtitle()])
+	if config.get_tags_enable():
+		params.extend(['-V', 'globaltags=' + global_taglist])
+	if config.get_years_enable():
+		params.extend(['-V', 'globalyears=' + global_yearlist])
+	if config.get_social_enable():
+		params.extend(['-V', 'social=' + config.get_social()])
+	if config.get_menu_enable():
+		params.extend(['-V', 'menu=' + config.get_menu()])
+	if config.get_page_tags_enable() and pagetags:
+		params.extend(['-V', 'pagetags='+ pagetags])
+	if config.get_pagelist_enable() and (len(global_pagelist) > 0):
+		params.extend(['-V', 'globalpagelist=' + global_pagelist])
+
+	meta = get_meta_for_source(filename_in)
+	if meta and ('plugins' in meta):
+		for plugin in meta['plugins']:
+			params.extend(['-H', System.get_plugin_style(plugin)])
+			params.extend(['-V', 'header-string=' + create_header_for_plugin(plugin)])
+
+	# theme specific stuff
+
+	if config.get_site_title_background():
+		params.extend(['-V', 'sitetitle-background=' + config.get_site_title_background()])
+	if config.get_copyright():
+		params.extend(['-V', 'copyright=' + config.get_copyright()])
+
+	# execute final conversion to HTML
+
+	p = subprocess.Popen(params,
+		stdout = subprocess.PIPE,
+		stdin = subprocess.PIPE,
+		stderr = subprocess.PIPE)
+	out, err = p.communicate(input=json.dumps(j))
+	if err:
+		raise IOError('error in executing pandoc to create html, err: ' + err)
+	*/
 }
 
 static void process_single(const std::string & source_directory,
