@@ -7,6 +7,7 @@
 #include <experimental/filesystem>
 #include <cxxopts/cxxopts.hpp>
 #include <yaml-cpp/yaml.h>
+#include <json/json.hpp>
 #include "system.hpp"
 #include "config.hpp"
 #include "posix_time.hpp"
@@ -318,6 +319,97 @@ static std::string read_json_str_from_document(const std::string & path)
 	return os.str();
 }
 
+static std::vector<std::string> split_path(const std::string & path)
+{
+	std::filesystem::path p{path};
+	return std::vector<std::string>{p.begin(), p.end()};
+}
+
+static std::string join_path(const std::vector<std::string> & parts)
+{
+	// std::experimental::filesystem::path(InputIterator, InputIterator)
+	// does not work at the moment, therefore it needs to be done maually
+
+	std::ostringstream os;
+	auto i = parts.begin();
+	os << *i;
+	++i;
+	for (; i != parts.end(); ++i) {
+		os << std::filesystem::path::preferred_separator << *i;
+	}
+	return os.str();
+}
+
+static std::string replace_root(const std::string & link)
+{
+	auto parts = split_path(link);
+
+	if (parts.size() < 2)
+		return link;
+
+	const auto path_map = system::cfg().get_path_map();
+	const auto entry = std::find_if(
+		begin(path_map), end(path_map), [&](const auto & a) { return a.base == parts[0]; });
+
+	if (entry == end(path_map))
+		return link;
+
+	if (entry->absolute) {
+		parts[0] = entry->url;
+	} else {
+		parts[0] = system::cfg().get_site_url() + entry->url;
+	}
+	return join_path(parts);
+}
+
+static void handle_link(nlohmann::json & data)
+{
+	auto i = data.find("c");
+	if (i == data.end())
+		return;
+	if (!i->is_array())
+		return;
+	if (i->empty())
+		return;
+
+	auto & link = (*i)[i->size() - 1][0];
+	if (!link.is_string())
+		return;
+
+	link = replace_root(link);
+}
+
+static void fix_links_recursive(nlohmann::json & data)
+{
+	if (data.is_array()) {
+		for (auto & item : data) {
+			fix_links_recursive(item);
+		}
+		return;
+	}
+
+	if (data.is_object()) {
+		auto i = data.find("t");
+		if (i != data.end()) {
+			if (*i == "Para") {
+				fix_links_recursive(data["c"]);
+				return;
+			}
+			if (*i == "Link") {
+				handle_link(data);
+				return;
+			}
+			if (*i == "Image") {
+				handle_link(data);
+				return;
+			}
+		}
+		for (auto & item : data) {
+			fix_links_recursive(item);
+		}
+	}
+}
+
 static void process_document(const std::string & filename_in, const std::string & filename_out,
 	const std::string & tags_list = std::string{})
 {
@@ -332,13 +424,10 @@ static void process_document(const std::string & filename_in, const std::string 
 	ensure_path(filename_out);
 
 	// conversion from source file to JSON and processing
-	const auto content = json::parse(read_json_str_from_document(filename_in));
+	auto content = nlohmann::json::parse(read_json_str_from_document(filename_in));
+	fix_links_recursive(content);
 
 	/* TODO
-
-
-	recursive_search_links(j)
-
 	# prepare final conversion parameter
 
 	params = [pandoc_bin,
