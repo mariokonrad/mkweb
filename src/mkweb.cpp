@@ -10,6 +10,7 @@
 #include "system.hpp"
 #include "config.hpp"
 #include "posix_time.hpp"
+#include "subprocess.hpp"
 
 namespace std
 {
@@ -18,8 +19,7 @@ namespace filesystem = experimental::filesystem;
 
 namespace mkweb
 {
-struct meta_info
-{
+struct meta_info {
 	posix_time date;
 	std::string title;
 	std::vector<std::string> authors;
@@ -40,7 +40,8 @@ static struct {
 	std::string page_list;
 } global;
 
-static std::experimental::optional<meta_info> get_meta_for_source(const std::string & filename_in)
+static std::experimental::optional<meta_info> get_meta_for_source(
+	const std::string & filename_in)
 {
 	const auto it = global.meta.find(filename_in);
 	if (it != global.meta.end())
@@ -62,8 +63,7 @@ static std::string read_meta_string_from_markdown(const std::string & path)
 	return contents;
 }
 
-template <class Container>
-static void collect(const YAML::Node & node, Container & c)
+template <class Container> static void collect(const YAML::Node & node, Container & c)
 {
 	if (!node)
 		return;
@@ -267,7 +267,8 @@ static std::string prepare_page_tag_list(const std::string & filename_in)
 	return prepare_tag_list(meta->tags);
 }
 
-static bool conversion_necessary(const std::string & filename_in, const std::string & filename_out)
+static bool conversion_necessary(
+	const std::string & filename_in, const std::string & filename_out)
 {
 	namespace fs = std::filesystem;
 
@@ -281,9 +282,11 @@ static bool conversion_necessary(const std::string & filename_in, const std::str
 		return true;
 	if (mtime_out < fs::last_write_time(system::get_theme_template()))
 		return true;
-	if (!system::get_theme_style().empty() && (mtime_out < fs::last_write_time(system::get_theme_style())))
+	if (!system::get_theme_style().empty()
+		&& (mtime_out < fs::last_write_time(system::get_theme_style())))
 		return true;
-	if (!system::get_theme_footer().empty() && (mtime_out < fs::last_write_time(system::get_theme_footer())))
+	if (!system::get_theme_footer().empty()
+		&& (mtime_out < fs::last_write_time(system::get_theme_footer())))
 		return true;
 
 	return false;
@@ -302,6 +305,19 @@ static bool ensure_path(const std::string & filename)
 	return fs::create_directories(path);
 }
 
+static std::string read_json_str_from_document(const std::string & path)
+{
+	utils::subprocess p{{system::pandoc(), "-t", "json", path}};
+	std::ostringstream os;
+
+	p.exec();
+	p.out() >> std::noskipws;
+	std::copy(std::istream_iterator<char>{p.out()}, std::istream_iterator<char>{},
+		std::ostream_iterator<char>{os});
+	p.wait();
+	return os.str();
+}
+
 static void process_document(const std::string & filename_in, const std::string & filename_out,
 	const std::string & tags_list = std::string{})
 {
@@ -315,16 +331,12 @@ static void process_document(const std::string & filename_in, const std::string 
 	std::cout << "        " << filename_out << '\n';
 	ensure_path(filename_out);
 
-	// TODO
-	/*
-	# conversion from source file to JSON
+	// conversion from source file to JSON and processing
+	const auto content = json::parse(read_json_str_from_document(filename_in));
 
-	params = [pandoc_bin, '-t', 'json', filename_in]
-	text = subprocess.Popen(params, stdout = subprocess.PIPE).communicate()[0]
+	/* TODO
 
-	# process JSON AST
 
-	j = json.loads(text)
 	recursive_search_links(j)
 
 	# prepare final conversion parameter
@@ -468,20 +480,21 @@ int main(int argc, char ** argv)
 			throw std::runtime_error{"specified file does not exist: " + config_file};
 		if (std::filesystem::is_directory(config_file)) {
 			// TODO
-			//process_pages(config.get_source(), config.get_destination(), specific_dir = path)
+			// process_pages(config.get_source(), config.get_destination(), specific_dir = path)
 		} else if (std::filesystem::is_regular_file(config_file)) {
 			// TODO
-			process_single(system::cfg().get_source(), system::cfg().get_destination(), config_file);
+			process_single(
+				system::cfg().get_source(), system::cfg().get_destination(), config_file);
 		} else {
 			throw std::runtime_error{"unable to process file type"};
 		}
 	} else {
 		// TODO
-		//process_tags(tags)
-		//process_years(years)
-		//process_pages(config.get_source(), config.get_destination())
-		//process_front()
-		//process_redirect(config.get_destination())
+		// process_tags(tags)
+		// process_years(years)
+		// process_pages(config.get_source(), config.get_destination())
+		// process_front()
+		// process_redirect(config.get_destination())
 		config_copy = true;
 		config_plugins = true;
 	}
