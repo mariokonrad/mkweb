@@ -8,7 +8,24 @@ namespace mkweb
 class posix_time
 {
 public:
+	enum class type { local, utc };
+
 	posix_time() { ::memset(&t, 0, sizeof(t)); }
+
+	static posix_time now(type time_type = type::utc)
+	{
+		posix_time t;
+		auto tmp = std::time(nullptr);
+		switch (time_type) {
+			case type::utc:
+				gmtime_r(&tmp, &t.t);
+				break;
+			case type::local:
+				localtime_r(&tmp, &t.t);
+				break;
+		}
+		return t;
+	}
 
 	static posix_time from_string(const std::string & s)
 	{
@@ -21,6 +38,13 @@ public:
 	{
 		char buf[32];
 		::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M", &t);
+		return std::string{buf};
+	}
+
+	std::string str_date() const
+	{
+		char buf[32];
+		::strftime(buf, sizeof(buf), "%Y-%m-%d", &t);
 		return std::string{buf};
 	}
 
