@@ -1,5 +1,8 @@
 #include "system.hpp"
 #include <experimental/filesystem>
+#include <unistd.h>
+#include <errno.h>
+#include <linux/limits.h>
 #include "config.hpp"
 
 namespace std
@@ -9,10 +12,20 @@ namespace filesystem = experimental::filesystem;
 
 namespace
 {
-std::string path_to_binary()
+static std::string path_to_binary()
 {
-	namespace fs = std::filesystem;
-	return fs::read_symlink("/proc/self/exe").remove_filename().string();
+	// for a reason, not investigated further, this does not work at the moment,
+	// therefore it has to be done manually and natively.
+	//
+	// namespace fs = std::filesystem;
+	// return fs::read_symlink("/proc/self/exe").remove_filename().string();
+
+	char path[PATH_MAX];
+	if (::readlink("/proc/self/exe", path, sizeof(path)) < 0)
+		throw std::system_error{errno, std::system_category(), "error in 'readlink'"};
+
+	std::string p{path};
+	return p.substr(0, p.find_last_of('/'));
 }
 }
 
@@ -28,6 +41,11 @@ config & system::cfg() { return *cfg_; }
 std::string system::get_plugin_path(const std::string & plugin)
 {
 	return path_to_binary() + "/../shared/plugins/" + plugin + '/';
+}
+
+std::string system::get_plugin_config(const std::string & plugin)
+{
+	return get_plugin_path(plugin) + "files.yml";
 }
 
 std::string system::get_plugin_style(const std::string & plugin)

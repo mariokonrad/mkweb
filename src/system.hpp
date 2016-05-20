@@ -15,6 +15,7 @@ public:
 	static config & cfg();
 
 	static std::string get_plugin_path(const std::string & plugin);
+	static std::string get_plugin_config(const std::string & plugin);
 	static std::string get_plugin_style(const std::string & plugin);
 	static std::string get_theme_path();
 	static std::string get_theme_template();

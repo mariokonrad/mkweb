@@ -410,6 +410,93 @@ static void fix_links_recursive(nlohmann::json & data)
 	}
 }
 
+template <class Container>
+static void append(Container & v, std::initializer_list<typename Container::value_type> l)
+{
+	for (const auto & item : l)
+		v.push_back(item);
+}
+
+static std::string make_plugin_script_string(
+	const std::string & plugin, const std::string & filename)
+{
+	return "<script type=\"text/javascript\" src=\"" + system::cfg().get_plugin_path(plugin)
+		+ filename + "\"></script>";
+}
+
+static std::string create_header_for_plugin(const std::string & plugin)
+{
+	std::ostringstream os;
+	auto cfg = YAML::LoadFile(system::get_plugin_config(plugin));
+	if (cfg["include"]) {
+		for (const auto & entry : cfg["include"]) {
+			os << make_plugin_script_string(plugin, entry.as<std::string>());
+		}
+	}
+	return os.str();
+}
+
+static std::vector<std::string> prepare_pandoc_params(const std::string & filename_in,
+	const std::string & filename_out, const std::string & tags_list)
+{
+	// clang-format off
+	std::vector<std::string> params {
+		system::pandoc(),
+		"-f", "json",
+		"-t", "html5",
+		"-o", filename_out,
+		"-H", system::get_theme_style(),
+		"-M", "title-prefix=" + system::cfg().get_site_title(),
+		"-V", "siteurl=" + system::cfg().get_site_url(),
+		"-V", "sitetitle=" + system::cfg().get_site_title(),
+		"--template", system::get_theme_template(),
+		"--standalone",
+		"--preserve-tabs",
+		"--toc", "--toc-depth=2",
+		"--mathml"
+	};
+	// clang-format on
+
+	if (!system::get_theme_footer().empty())
+		append(params, {"-A", system::get_theme_footer()});
+	if (!system::cfg().get_site_subtitle().empty())
+		append(params, {"-V", "sitesubtitle=" + system::cfg().get_site_subtitle()});
+	if (system::cfg().get_tags_enable())
+		append(params, {"-V", "globaltags=" + global.tag_list});
+	if (system::cfg().get_years_enable())
+		append(params, {"-V", "globalyears=" + global.year_list});
+	if (system::cfg().get_social_enable())
+		append(params, {"-V", "social=" + system::cfg().get_social()});
+	if (system::cfg().get_menu_enable())
+		append(params, {"-V", "menu=" + system::cfg().get_menu()});
+	if (system::cfg().get_page_tags_enable() && !tags_list.empty())
+		append(params, {"-V", "pagetags=" + tags_list});
+	if (system::cfg().get_pagelist_enable() && !global.page_list.empty())
+		append(params, {"-V", "globalpagelist=" + global.page_list});
+
+	const auto meta = get_meta_for_source(filename_in);
+	if (meta) {
+		for (const auto & plugin : meta->plugins) {
+			append(params, {"-H", system::get_plugin_style(plugin)});
+			append(params, {"-V", "header-string=" + create_header_for_plugin(plugin)});
+		}
+	}
+
+	// theme specific stuff
+	if (!system::cfg().get_site_title_background().empty())
+		append(params,
+			{"-V", "sitetitle-background=" + system::cfg().get_site_title_background()});
+	if (!system::cfg().get_copyright().empty())
+		append(params, {"-V", "copyright=" + system::cfg().get_copyright()});
+
+	std::cerr << "---------------------------------------------------------------\n";
+	for (const auto & s : params)
+		std::cerr << s << '\n';
+	std::cerr << "---------------------------------------------------------------\n";
+
+	return params;
+}
+
 static void process_document(const std::string & filename_in, const std::string & filename_out,
 	const std::string & tags_list = std::string{})
 {
@@ -427,57 +514,10 @@ static void process_document(const std::string & filename_in, const std::string 
 	auto content = nlohmann::json::parse(read_json_str_from_document(filename_in));
 	fix_links_recursive(content);
 
+	// perform final conversion to HTML
+	const auto params = prepare_pandoc_params(filename_in, filename_out, tags_list);
+
 	/* TODO
-	# prepare final conversion parameter
-
-	params = [pandoc_bin,
-		'-f', 'json',
-		'-t', 'html5',
-		'-o', filename_out,
-		'-H', System.get_theme_style(),
-		'-M', 'title-prefix=' + config.get_site_title(),
-		'-V', 'siteurl=' + config.get_site_url(),
-		'-V', 'sitetitle=' + config.get_site_title(),
-		'--template', System.get_theme_template(),
-		'--standalone',
-		'--preserve-tabs',
-		'--toc', '--toc-depth=2',
-		'--mathml'
-		]
-
-	if System.get_theme_footer():
-		params.extend(['-A', System.get_theme_footer()])
-
-	if config.get_site_subtitle():
-		params.extend(['-V', 'sitesubtitle=' + config.get_site_subtitle()])
-	if config.get_tags_enable():
-		params.extend(['-V', 'globaltags=' + global_taglist])
-	if config.get_years_enable():
-		params.extend(['-V', 'globalyears=' + global_yearlist])
-	if config.get_social_enable():
-		params.extend(['-V', 'social=' + config.get_social()])
-	if config.get_menu_enable():
-		params.extend(['-V', 'menu=' + config.get_menu()])
-	if config.get_page_tags_enable() and pagetags:
-		params.extend(['-V', 'pagetags='+ pagetags])
-	if config.get_pagelist_enable() and (len(global_pagelist) > 0):
-		params.extend(['-V', 'globalpagelist=' + global_pagelist])
-
-	meta = get_meta_for_source(filename_in)
-	if meta and ('plugins' in meta):
-		for plugin in meta['plugins']:
-			params.extend(['-H', System.get_plugin_style(plugin)])
-			params.extend(['-V', 'header-string=' + create_header_for_plugin(plugin)])
-
-	# theme specific stuff
-
-	if config.get_site_title_background():
-		params.extend(['-V', 'sitetitle-background=' + config.get_site_title_background()])
-	if config.get_copyright():
-		params.extend(['-V', 'copyright=' + config.get_copyright()])
-
-	# execute final conversion to HTML
-
 	p = subprocess.Popen(params,
 		stdout = subprocess.PIPE,
 		stdin = subprocess.PIPE,
