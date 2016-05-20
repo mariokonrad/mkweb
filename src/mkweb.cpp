@@ -590,6 +590,44 @@ static std::string get_meta_contents()
 																		  "language: en\n"
 																		  "---\n");
 }
+
+static std::string create_temp_directory()
+{
+	std::string path = (std::filesystem::temp_directory_path() / "mkwebtmp-XXXXXX").string();
+	::mkdtemp(&path[0]);
+	return path;
+}
+
+static void process_tags(const std::unordered_map<std::string, std::vector<std::string>> & tags)
+{
+	const auto date_str = posix_time::now().str_date();
+	const auto file_meta_info = get_meta_tags();
+
+	const auto path = system::cfg().get_destination() + "/tag";
+	ensure_path(path + '/');
+
+	auto tmp = create_temp_directory();
+
+	for (auto const & tag : tags) {
+		const auto filename = tmp +'/' + tag.first + ".md";
+		try {
+			std::ofstream ofs{filename.c_str()};
+			/* TODO
+			f.write((file_meta_info % (tag, config.get_author(), date_str)).encode('utf8'))
+			for info in sorted(tags[tag], key = lambda x : x['meta']['title']):
+				title = info['meta']['title']
+				link = config.get_source() + '/' + info['filename'].replace('.md', '.html')
+				f.write(('- [%s](%s)\n' % (title, link)).encode('utf8'))
+			*/
+		} catch (...) {
+			std::filesystem::remove_all(tmp);
+			throw std::runtime_error{"error in processing tag file for: " + tag.first};
+		}
+	}
+
+	// TODO: process_pages(tmp, path)
+	std::filesystem::remove_all(tmp);
+}
 }
 
 int main(int argc, char ** argv)
@@ -669,7 +707,7 @@ int main(int argc, char ** argv)
 		}
 	} else {
 		// TODO
-		// process_tags(tags)
+		process_tags(global.tags);
 		// process_years(years)
 		// process_pages(config.get_source(), config.get_destination())
 		// process_front()
