@@ -545,6 +545,51 @@ static void process_single(const std::string & source_directory,
 		std::cout << "ignore: " << filename_in << '\n';
 	}
 }
+
+static std::string read_file_contents(
+	const std::string & filename, const std::string & default_value)
+{
+	if (!std::filesystem::exists(filename)) {
+		return default_value;
+	}
+	std::ostringstream os;
+	std::ifstream ifs{filename.c_str()};
+	std::copy(std::istream_iterator<char>{ifs}, std::istream_iterator<char>{},
+		std::ostream_iterator<char>{os});
+	return os.str();
+}
+
+static std::string get_meta_tags()
+{
+	return read_file_contents(system::get_theme_template_meta_tags(),
+		"---\n"
+		"title: \"Tag Overview: %s\"\n"
+		"author: %s\n"
+		"date: %s\n"
+		"language: en\n"
+		"---\n");
+}
+
+static std::string get_meta_years()
+{
+	return read_file_contents(system::get_theme_template_meta_years(),
+		"---\n"
+		"title: \"Year Overview: %s\"\n"
+		"author: %s\n"
+		"date: %s\n"
+		"language: en\n"
+		"---\n");
+}
+
+static std::string get_meta_contents()
+{
+	return read_file_contents(system::get_theme_template_meta_contents(), "---\n"
+																		  "title: Contents\n"
+																		  "author: %s\n"
+																		  "date: %s\n"
+																		  "language: en\n"
+																		  "---\n");
+}
 }
 
 int main(int argc, char ** argv)

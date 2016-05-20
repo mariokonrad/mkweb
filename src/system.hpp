@@ -19,6 +19,9 @@ public:
 	static std::string get_plugin_style(const std::string & plugin);
 	static std::string get_theme_path();
 	static std::string get_theme_template();
+	static std::string get_theme_template_meta_tags();
+	static std::string get_theme_template_meta_years();
+	static std::string get_theme_template_meta_contents();
 	static std::string get_theme_style();
 	static std::string get_theme_footer();
 

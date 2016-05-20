@@ -68,6 +68,21 @@ std::string system::get_theme_template()
 	return get_theme_path() + "template.html";
 }
 
+std::string system::get_theme_template_meta_tags()
+{
+	return get_theme_path() + "meta-tags.txt";
+}
+
+std::string system::get_theme_template_meta_years()
+{
+	return get_theme_path() + "meta-years.txt";
+}
+
+std::string system::get_theme_template_meta_contents()
+{
+	return get_theme_path() + "meta-contents.txt";
+}
+
 std::string system::get_theme_style()
 {
 	return get_theme_path() + "style.html";
