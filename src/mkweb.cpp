@@ -319,6 +319,25 @@ static std::string read_json_str_from_document(const std::string & path)
 	return os.str();
 }
 
+static bool write_document_from_json(
+	const std::vector<std::string> & params, const std::string & content)
+{
+	utils::subprocess p{params};
+	std::ostringstream os;
+
+	p.exec();
+
+	p.in() << content;
+	p.close_in();
+
+	p.err() >> std::noskipws;
+	std::copy(std::istream_iterator<char>{p.err()}, std::istream_iterator<char>{},
+		std::ostream_iterator<char>{os});
+	auto rc = p.wait();
+
+	return (rc == 0) && (os.tellp() == 0);
+}
+
 static std::vector<std::string> split_path(const std::string & path)
 {
 	std::filesystem::path p{path};
@@ -489,19 +508,12 @@ static std::vector<std::string> prepare_pandoc_params(const std::string & filena
 	if (!system::cfg().get_copyright().empty())
 		append(params, {"-V", "copyright=" + system::cfg().get_copyright()});
 
-	std::cerr << "---------------------------------------------------------------\n";
-	for (const auto & s : params)
-		std::cerr << s << '\n';
-	std::cerr << "---------------------------------------------------------------\n";
-
 	return params;
 }
 
 static void process_document(const std::string & filename_in, const std::string & filename_out,
 	const std::string & tags_list = std::string{})
 {
-	std::cerr << "process: " << filename_in << " -> " << filename_out << '\n';
-
 	if (!conversion_necessary(filename_in, filename_out)) {
 		std::cout << "skip    " << filename_out << '\n';
 		return;
@@ -516,16 +528,9 @@ static void process_document(const std::string & filename_in, const std::string 
 
 	// perform final conversion to HTML
 	const auto params = prepare_pandoc_params(filename_in, filename_out, tags_list);
-
-	/* TODO
-	p = subprocess.Popen(params,
-		stdout = subprocess.PIPE,
-		stdin = subprocess.PIPE,
-		stderr = subprocess.PIPE)
-	out, err = p.communicate(input=json.dumps(j))
-	if err:
-		raise IOError('error in executing pandoc to create html, err: ' + err)
-	*/
+	const auto success = write_document_from_json(params, content.dump());
+	if (!success)
+		throw std::runtime_error{"unable to write file: " + filename_out};
 }
 
 static void process_single(const std::string & source_directory,
