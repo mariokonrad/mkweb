@@ -33,9 +33,9 @@ struct meta_info {
 
 static struct {
 	std::unordered_map<std::string, meta_info> meta;
-	std::unordered_set<std::string> plugins;
 	std::unordered_map<std::string, std::vector<std::string>> tags;
-	std::unordered_map<uint32_t, std::vector<std::string>> years;
+	std::unordered_map<std::string, std::vector<std::string>> years;
+	std::unordered_set<std::string> plugins;
 
 	std::string tag_list;
 	std::string year_list;
@@ -140,7 +140,7 @@ static void collect_information(const std::string & source_root_directory)
 				global.plugins.insert(plugin);
 			for (const auto & tag : info.tags)
 				global.tags[tag].push_back(path);
-			global.years[info.date.year()].push_back(path);
+			global.years[fmt::sprintf("%04u", info.date.year())].push_back(path);
 
 		} catch (...) {
 			// no relevant meta data found for file, there is nothing to be done
@@ -178,11 +178,11 @@ static std::string prepare_global_tag_list(
 }
 
 static std::string prepare_global_year_list(
-	const std::unordered_map<uint32_t, std::vector<std::string>> & years)
+	const std::unordered_map<std::string, std::vector<std::string>> & years)
 {
 	const auto site_url = system::cfg().get_site_url();
 
-	std::vector<uint32_t> ids;
+	std::vector<std::string> ids;
 	ids.reserve(years.size());
 	for (const auto & year : years)
 		ids.push_back(year.first);
@@ -638,7 +638,9 @@ Container sorted(const Container & c, Comparison comp)
 	return t;
 }
 
-static void process_tags(const std::unordered_map<std::string, std::vector<std::string>> & items)
+static void process_overview(
+	const std::unordered_map<std::string, std::vector<std::string>> & items,
+	const std::string & name)
 {
 	namespace fs = std::filesystem;
 
@@ -646,7 +648,7 @@ static void process_tags(const std::unordered_map<std::string, std::vector<std::
 	const auto file_meta_info = get_meta_tags();
 	const auto author = system::cfg().get_author();
 
-	const auto path = system::cfg().get_destination() + "/tag";
+	const auto path = system::cfg().get_destination() + '/' + name;
 	ensure_path(path + '/');
 	auto tmp = create_temp_directory();
 
@@ -654,19 +656,20 @@ static void process_tags(const std::unordered_map<std::string, std::vector<std::
 		const auto & a, const auto & b) { return global.meta[a].title < global.meta[b].title; };
 
 	for (auto const & entry : items) {
+		const std::string id = entry.first;
 		try {
 			// write meta data
-			std::ofstream ofs{(tmp + '/' + entry.first + ".md").c_str()};
-			ofs << fmt::sprintf(file_meta_info, entry.first, author, date_str) << '\n';
+			std::ofstream ofs{(tmp + '/' + id + ".md").c_str()};
+			ofs << fmt::sprintf(file_meta_info, id, author, date_str) << '\n';
 
 			// write list of links
-			for (const auto &fn : sorted(entry.second, by_title)) {
+			for (const auto & fn : sorted(entry.second, by_title)) {
 				const auto link = fs::path{fn}.replace_extension(".html").string();
 				ofs << "- [" << global.meta[fn].title << "](" << link << ")\n";
 			}
 		} catch (...) {
 			std::filesystem::remove_all(tmp);
-			throw std::runtime_error{"error in processing tag file for: " + entry.first};
+			throw std::runtime_error{"error in processing " + name + " file for: " + id};
 		}
 	}
 
@@ -752,8 +755,8 @@ int main(int argc, char ** argv)
 		}
 	} else {
 		// TODO
-		process_tags(global.tags);
-		// process_years(years)
+		process_overview(global.tags, "tag");
+		process_overview(global.years, "year");
 		// process_pages(config.get_source(), config.get_destination())
 		// process_front()
 		// process_redirect(config.get_destination())
