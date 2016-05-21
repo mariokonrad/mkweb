@@ -128,8 +128,6 @@ static void collect_information(const std::string & source_root_directory)
 	for (auto it = fs::recursive_directory_iterator{source_path};
 		 it != fs::recursive_directory_iterator{}; ++it) {
 
-		// TODO: handle absolute paths?
-
 		if (!fs::is_regular_file(it->path()))
 			continue;
 
@@ -608,9 +606,7 @@ static void process_tags(const std::unordered_map<std::string, std::vector<std::
 	const auto file_meta_info = get_meta_tags();
 	const auto author = system::cfg().get_author();
 
-	const auto path = system::cfg().get_destination() + "/tag";
-	ensure_path(path + '/');
-
+	ensure_path(system::cfg().get_destination() + "/tag/");
 	auto tmp = create_temp_directory();
 
 	for (auto const & entry : tags) {
