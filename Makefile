@@ -1,7 +1,8 @@
 .PHONY: default clean clean-all mkweb
 
-CXX=g++-5
-CXXFLAGS=-Wall -Wextra -pedantic -O0 -ggdb -std=c++1z -static
+export CC=gcc-6
+export CXX=g++-6
+export CXXFLAGS=-Wall -Wextra -pedantic -O0 -ggdb -std=c++1z -static
 
 STRIP=strip
 STRIPFLAGS=-s
