@@ -545,6 +545,38 @@ static void process_single(const std::string & source_directory,
 	}
 }
 
+static bool is_subdir(const std::string & subdirectory, const std::string & directory)
+{
+	/* TODO
+	path = os.path.realpath(path)
+	directory = os.path.realpath(directory)
+	relative = os.path.relpath(path, directory)
+	return not (relative == os.pardir or relative.startswith(os.pardir + os.sep))
+	*/
+	return false;
+}
+
+static void process_pages(const std::string source_directory,
+	const std::string & destination_directory, const std::string & specific_dir = std::string{})
+{
+	if (!specific_dir.empty()) {
+		if (!is_subdir(specific_dir, source_directory))
+			throw std::runtime_error{
+				"error: " + specific_dir + " is not a subdir of " + source_directory};
+	}
+
+	namespace fs = std::filesystem;
+
+	for (const auto & entry : fs::recursive_directory_iterator{source_directory}) {
+		fs::path path{entry.path()};
+		if (!specific_dir.empty() && fs::is_directory(path) && (specific_dir != path))
+			continue;
+		if (fs::is_regular_file(path)) {
+			process_single(source_directory, destination_directory, path.string());
+		}
+	}
+}
+
 static std::string read_file_contents(
 	const std::string & filename, const std::string & default_value)
 {
@@ -598,7 +630,15 @@ static std::string create_temp_directory()
 	return path;
 }
 
-static void process_tags(const std::unordered_map<std::string, std::vector<std::string>> & tags)
+template <typename Container, typename Comparison>
+Container sorted(const Container & c, Comparison comp)
+{
+	Container t = c;
+	std::sort(begin(t), end(t), comp);
+	return t;
+}
+
+static void process_tags(const std::unordered_map<std::string, std::vector<std::string>> & items)
 {
 	namespace fs = std::filesystem;
 
@@ -606,26 +646,23 @@ static void process_tags(const std::unordered_map<std::string, std::vector<std::
 	const auto file_meta_info = get_meta_tags();
 	const auto author = system::cfg().get_author();
 
-	ensure_path(system::cfg().get_destination() + "/tag/");
+	const auto path = system::cfg().get_destination() + "/tag";
+	ensure_path(path + '/');
 	auto tmp = create_temp_directory();
 
-	for (auto const & entry : tags) {
+	auto by_title = [](
+		const auto & a, const auto & b) { return global.meta[a].title < global.meta[b].title; };
+
+	for (auto const & entry : items) {
 		try {
 			// write meta data
 			std::ofstream ofs{(tmp + '/' + entry.first + ".md").c_str()};
 			ofs << fmt::sprintf(file_meta_info, entry.first, author, date_str) << '\n';
 
-			// sort filenames according to their title (meta data)
-			std::vector<std::string> filenames = entry.second;
-			std::sort(
-				begin(filenames), end(filenames), [](const auto & a, const auto & b) {
-					return global.meta[a].title < global.meta[b].title;
-				});
-
 			// write list of links
-			for (const auto & fn : filenames) {
+			for (const auto &fn : sorted(entry.second, by_title)) {
 				const auto link = fs::path{fn}.replace_extension(".html").string();
-				ofs << "- (" << global.meta[fn].title << ")[" << link << "]\n";
+				ofs << "- [" << global.meta[fn].title << "](" << link << ")\n";
 			}
 		} catch (...) {
 			std::filesystem::remove_all(tmp);
@@ -633,7 +670,7 @@ static void process_tags(const std::unordered_map<std::string, std::vector<std::
 		}
 	}
 
-	// TODO: process_pages(tmp, path)
+	process_pages(tmp, path);
 	std::filesystem::remove_all(tmp);
 }
 }
