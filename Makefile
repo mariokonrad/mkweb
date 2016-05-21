@@ -19,15 +19,23 @@ meta : src/meta.cpp
 mkweb : bin/mkwebc
 
 bin/mkwebc : config.o system.o mkweb.o
-	$(CXX) $(CXXFLAGS) -o $@ $^ -L`pwd`/local/lib -lyaml-cpp -lstdc++fs
+	$(CXX) $(CXXFLAGS) -o $@ $^ -L`pwd`/local/lib -lyaml-cpp -lfmt -lstdc++fs
 
 configdump : config.o system.o configdump.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ -L`pwd`/local/lib -lyaml-cpp
 
 yaml :
-	mkdir local
+	if [ ! -d local ] ; then mkdir local ;fi
 	mkdir build
-	(cd build ; cmake ~/local/repo/yaml-cpp -DCMAKE_INSTALL_PREFIX=`pwd`/../local)
+	(cd build ; cmake ~/local/repo/yaml-cpp -DCMAKE_INSTALL_PREFIX=`pwd`/../local -DYAML_CPP_BUILD_TOOLS=OFF -DYAML_CPP_BUILD_CONTRIB=OFF)
+	(cd build ; make -j 8)
+	(cd build ; make install)
+	rm -fr build
+
+fmt :
+	if [ ! -d local ] ; then mkdir local ;fi
+	mkdir build
+	(cd build ; cmake ~/local/repo/fmt -DCMAKE_INSTALL_PREFIX=`pwd`/../local -DFMT_USE_CPP11=ON -DFMT_TEST=OFF -DFMT_DOC=OFF)
 	(cd build ; make -j 8)
 	(cd build ; make install)
 	rm -fr build

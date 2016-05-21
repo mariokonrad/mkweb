@@ -8,6 +8,7 @@
 #include <cxxopts/cxxopts.hpp>
 #include <yaml-cpp/yaml.h>
 #include <json/json.hpp>
+#include <fmt/format.h>
 #include "system.hpp"
 #include "config.hpp"
 #include "posix_time.hpp"
@@ -554,6 +555,7 @@ static std::string read_file_contents(
 	}
 	std::ostringstream os;
 	std::ifstream ifs{filename.c_str()};
+	ifs >> std::noskipws;
 	std::copy(std::istream_iterator<char>{ifs}, std::istream_iterator<char>{},
 		std::ostream_iterator<char>{os});
 	return os.str();
@@ -600,28 +602,38 @@ static std::string create_temp_directory()
 
 static void process_tags(const std::unordered_map<std::string, std::vector<std::string>> & tags)
 {
+	namespace fs = std::filesystem;
+
 	const auto date_str = posix_time::now().str_date();
 	const auto file_meta_info = get_meta_tags();
+	const auto author = system::cfg().get_author();
 
 	const auto path = system::cfg().get_destination() + "/tag";
 	ensure_path(path + '/');
 
 	auto tmp = create_temp_directory();
 
-	for (auto const & tag : tags) {
-		const auto filename = tmp +'/' + tag.first + ".md";
+	for (auto const & entry : tags) {
 		try {
-			std::ofstream ofs{filename.c_str()};
-			/* TODO
-			f.write((file_meta_info % (tag, config.get_author(), date_str)).encode('utf8'))
-			for info in sorted(tags[tag], key = lambda x : x['meta']['title']):
-				title = info['meta']['title']
-				link = config.get_source() + '/' + info['filename'].replace('.md', '.html')
-				f.write(('- [%s](%s)\n' % (title, link)).encode('utf8'))
-			*/
+			// write meta data
+			std::ofstream ofs{(tmp + '/' + entry.first + ".md").c_str()};
+			ofs << fmt::sprintf(file_meta_info, entry.first, author, date_str) << '\n';
+
+			// sort filenames according to their title (meta data)
+			std::vector<std::string> filenames = entry.second;
+			std::sort(
+				begin(filenames), end(filenames), [](const auto & a, const auto & b) {
+					return global.meta[a].title < global.meta[b].title;
+				});
+
+			// write list of links
+			for (const auto & fn : filenames) {
+				const auto link = fs::path{fn}.replace_extension(".html").string();
+				ofs << "- (" << global.meta[fn].title << ")[" << link << "]\n";
+			}
 		} catch (...) {
 			std::filesystem::remove_all(tmp);
-			throw std::runtime_error{"error in processing tag file for: " + tag.first};
+			throw std::runtime_error{"error in processing tag file for: " + entry.first};
 		}
 	}
 
