@@ -1,6 +1,7 @@
 #ifndef __MKWEB__POSIX_TIME__HPP__
 #define __MKWEB__POSIX_TIME__HPP__
 
+#include <tuple>
 #include <ctime>
 
 namespace mkweb
@@ -54,6 +55,20 @@ public:
 	uint32_t hour() const { return t.tm_hour; }
 	uint32_t minute() const { return t.tm_min; }
 	uint32_t second() const { return t.tm_sec; }
+
+	bool operator<(const posix_time & other) const
+	{
+		return std::tie(t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec)
+			< std::tie(other.t.tm_year, other.t.tm_mon, other.t.tm_mday, other.t.tm_hour,
+				   other.t.tm_min, other.t.tm_sec);
+	}
+
+	bool operator>(const posix_time & other) const
+	{
+		return std::tie(t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec)
+			> std::tie(other.t.tm_year, other.t.tm_mon, other.t.tm_mday, other.t.tm_hour,
+				   other.t.tm_min, other.t.tm_sec);
+	}
 
 private:
 	struct tm t;

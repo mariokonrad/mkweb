@@ -35,6 +35,7 @@ static struct {
 	std::unordered_map<std::string, meta_info> meta;
 	std::unordered_map<std::string, std::vector<std::string>> tags;
 	std::unordered_map<std::string, std::vector<std::string>> years;
+	std::map<posix_time, std::vector<std::string>, std::greater<>> dates;
 	std::unordered_set<std::string> plugins;
 
 	std::string tag_list;
@@ -141,6 +142,7 @@ static void collect_information(const std::string & source_root_directory)
 			for (const auto & tag : info.tags)
 				global.tags[tag].push_back(path);
 			global.years[fmt::sprintf("%04u", info.date.year())].push_back(path);
+			global.dates[info.date].push_back(path);
 
 		} catch (...) {
 			// no relevant meta data found for file, there is nothing to be done
@@ -292,7 +294,7 @@ static bool conversion_necessary(
 	return false;
 }
 
-static bool ensure_path(const std::string & filename)
+static bool ensure_path_for_file(const std::string & filename)
 {
 	namespace fs = std::filesystem;
 
@@ -519,7 +521,7 @@ static void process_document(const std::string & filename_in, const std::string 
 	}
 
 	std::cout << "        " << filename_out << '\n';
-	ensure_path(filename_out);
+	ensure_path_for_file(filename_out);
 
 	// conversion from source file to JSON and processing
 	auto content = nlohmann::json::parse(read_json_str_from_document(filename_in));
@@ -649,7 +651,7 @@ static void process_overview(
 	const auto author = system::cfg().get_author();
 
 	const auto path = system::cfg().get_destination() + '/' + name;
-	ensure_path(path + '/');
+	ensure_path_for_file(path + '/');
 	auto tmp = create_temp_directory();
 
 	auto by_title = [](
@@ -674,6 +676,60 @@ static void process_overview(
 	}
 
 	process_pages(tmp, path);
+	std::filesystem::remove_all(tmp);
+}
+
+static void process_front()
+{
+	// write file with links to newest n pages
+
+	const auto date_str = posix_time::now().str_date();
+	const auto author = system::cfg().get_author();
+
+	auto tmp = create_temp_directory();
+
+	const auto index_filename = tmp + "/index.md";
+	const auto destination_filename = system::cfg().get_destination() + "/index.html";
+
+	try {
+		std::ofstream ofs{index_filename.c_str()};
+		ofs << fmt::sprintf(get_meta_contents(), author, date_str) << '\n';
+		ofs << "Newest Entries:\n\n";
+
+		const auto num = system::cfg().get_num_news();
+		auto count = 0;
+		for (const auto & date : global.dates) {
+			if (count >= num)
+				break;
+			const auto date_str = date.first.str_date();
+			for (const auto & fn : date.second) {
+				if (count >= num)
+					break;
+				++count;
+
+				const auto & info = global.meta[fn];
+
+				const auto link = std::filesystem::path{fn}.replace_extension(".html")
+									  .string();
+				ofs << "  - `" << date_str << "` : [" << info.title
+					<< "](" << link << ")\n";
+
+				if (!info.summary.empty()) {
+					ofs << '\n' << "    " << info.summary << '\n';
+				}
+
+				ofs << '\n';
+			}
+		}
+
+		ofs.close();
+		ensure_path_for_file(destination_filename);
+		process_document(index_filename, destination_filename);
+	} catch (...) {
+		std::filesystem::remove_all(tmp);
+		throw std::runtime_error{"error in processing front page"};
+	}
+
 	std::filesystem::remove_all(tmp);
 }
 }
@@ -756,7 +812,7 @@ int main(int argc, char ** argv)
 		process_overview(global.tags, "tag", get_meta_tags());
 		process_overview(global.years, "year", get_meta_years());
 		process_pages(system::cfg().get_source(), system::cfg().get_destination());
-		// TODO: process_front()
+		process_front();
 		// TODO: process_redirect(config.get_destination())
 		config_copy = true;
 		config_plugins = true;
