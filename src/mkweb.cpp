@@ -732,6 +732,33 @@ static void process_front()
 
 	std::filesystem::remove_all(tmp);
 }
+
+static void process_redirect(const std::string & directory)
+{
+	namespace fs = std::filesystem;
+
+	static const std::string content_fmt = "<!DOCTYPE html>\n"
+										   "<html><head><meta http-equiv=\"refresh\" "
+										   "content=\"0;url=%s\"></head><body></body></html>\n";
+
+	const auto site_url = system::cfg().get_site_url();
+
+	for (const auto path : fs::recursive_directory_iterator(directory)) {
+		if (!fs::is_directory(path))
+			continue;
+		const fs::path filepath = path / "index.html";
+		if (fs::exists(filepath))
+			continue;
+
+		std::cout << "redir:  " << filepath.string() << '\n';
+		try {
+			std::ofstream ofs{filepath.string().c_str()};
+			ofs << fmt::sprintf(content_fmt, site_url) << '\n';
+		} catch (...) {
+			// intentionally ignored
+		}
+	}
+}
 }
 
 int main(int argc, char ** argv)
@@ -813,7 +840,7 @@ int main(int argc, char ** argv)
 		process_overview(global.years, "year", get_meta_years());
 		process_pages(system::cfg().get_source(), system::cfg().get_destination());
 		process_front();
-		// TODO: process_redirect(config.get_destination())
+		process_redirect(system::cfg().get_destination());
 		config_copy = true;
 		config_plugins = true;
 	}
