@@ -30,6 +30,7 @@ using std::experimental::filesystem::temp_directory_path;
 using std::experimental::filesystem::remove_all;
 using std::experimental::filesystem::copy;
 using std::experimental::filesystem::create_directories;
+using std::experimental::filesystem::canonical;
 }
 
 struct meta_info {
@@ -546,15 +547,12 @@ static void process_single(const std::string & source_directory,
 	}
 }
 
-static bool is_subdir(const std::string & subdirectory, const std::string & directory)
+static bool is_subdir(const std::string & path, const std::string & directory)
 {
-	/* TODO
-	path = os.path.realpath(path)
-	directory = os.path.realpath(directory)
-	relative = os.path.relpath(path, directory)
-	return not (relative == os.pardir or relative.startswith(os.pardir + os.sep))
-	*/
-	return false;
+	const auto p = fs::canonical(path);
+	const auto d = fs::canonical(directory);
+
+	return std::equal(d.begin(), d.end(), p.begin());
 }
 
 static void process_pages(const std::string source_directory,
