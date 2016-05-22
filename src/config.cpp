@@ -39,7 +39,14 @@ std::string config::get_plugin_path(const std::string & plugin) const
 
 std::string config::get_site_url() const { return get_str("site_url", "?"); }
 
-std::string config::get_plugin_url() const { return get_str("plugin_url", ""); }
+std::string config::get_plugin_url(const std::string & plugin) const
+{
+	auto url = get_str("plugin_url", {});
+	if (url.size()) {
+		url += plugin + "/";
+	}
+	return url;
+}
 
 std::string config::get_site_title() const { return get_str("site_title", "TITLE"); }
 

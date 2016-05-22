@@ -45,7 +45,7 @@ public:
 	std::string get_plugin_path(const std::string & plugin = "") const;
 
 	std::string get_site_url() const;
-	std::string get_plugin_url() const;
+	std::string get_plugin_url(const std::string & plugin = "") const;
 	std::string get_site_title() const;
 	std::string get_site_subtitle() const;
 	std::string get_language() const;

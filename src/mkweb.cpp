@@ -102,8 +102,6 @@ static void collect(const YAML::Node & node, std::string & s)
 
 static meta_info read_meta(const std::string & path)
 {
-	// TODO: handle different file types besides markdown, depending on extension
-
 	const auto txt = read_meta_string_from_markdown(path);
 	const auto doc = YAML::Load(txt);
 
@@ -441,7 +439,7 @@ static void append(Container & v, std::initializer_list<typename Container::valu
 static std::string make_plugin_script_string(
 	const std::string & plugin, const std::string & filename)
 {
-	return "<script type=\"text/javascript\" src=\"" + system::cfg().get_plugin_path(plugin)
+	return "<script type=\"text/javascript\" src=\"" + system::cfg().get_plugin_url(plugin)
 		+ filename + "\"></script>";
 }
 
@@ -805,10 +803,36 @@ static void process_copy_file()
 	}
 }
 
-static void process_copy_plugins()
+static void copy_plugin_files(const std::string & plugin)
 {
-	std::cout << "copy plugins\n";
-	// TODO
+	std::cout << "install plugin: " << plugin << '\n';
+
+	const auto cfg = YAML::LoadFile(system::get_plugin_config(plugin));
+
+	if (!cfg || !cfg["install"])
+		throw std::runtime_error{"error: unable to read configuration for plugin: " + plugin};
+
+	const auto destination_path = fs::path{system::cfg().get_plugin_path(plugin)};
+	const auto plugin_path = fs::path{system::get_plugin_path(plugin)};
+
+	for (const auto & entry : cfg["install"]) {
+		const auto f = entry.as<std::string>();
+		const auto fn = plugin_path / f;
+		if (!fs::exists(fn))
+			throw std::runtime_error{
+				"error: unable to copy file '" + f + "' of plugin " + plugin};
+		if (fs::is_regular_file(fn)) {
+			std::cout << "  copy [f] " << fn << " -> " << destination_path << '\n';
+			mkweb::copy(fn, destination_path.string());
+		} else if (fs::is_directory(fn)) {
+			std::cout << "  copy [d] " << fn << " -> " << (destination_path / f) << '\n';
+			ensure_path_for_file(destination_path.string());
+			fs::copy(fn, destination_path / f, fs::copy_options::overwrite_existing
+					| fs::copy_options::recursive | fs::copy_options::skip_symlinks);
+		} else {
+			throw std::runtime_error{"error: '" + f + "' is not a file or directory"};
+		}
+	}
 }
 }
 
@@ -900,7 +924,9 @@ int main(int argc, char ** argv)
 		process_copy_file();
 	}
 	if (config_plugins) {
-		process_copy_plugins();
+		std::cout << "copy plugins\n";
+		for (const auto & plugin : global.plugins)
+			copy_plugin_files(plugin);
 	}
 
 	return 0;
