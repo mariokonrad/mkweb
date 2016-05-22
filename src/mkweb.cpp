@@ -14,13 +14,24 @@
 #include "posix_time.hpp"
 #include "subprocess.hpp"
 
-namespace std
-{
-namespace filesystem = experimental::filesystem;
-}
-
 namespace mkweb
 {
+namespace fs
+{
+using path = std::experimental::filesystem::path;
+using copy_options = std::experimental::filesystem::copy_options;
+using recursive_directory_iterator
+	= std::experimental::filesystem::recursive_directory_iterator;
+using std::experimental::filesystem::exists;
+using std::experimental::filesystem::is_regular_file;
+using std::experimental::filesystem::is_directory;
+using std::experimental::filesystem::last_write_time;
+using std::experimental::filesystem::temp_directory_path;
+using std::experimental::filesystem::remove_all;
+using std::experimental::filesystem::copy;
+using std::experimental::filesystem::create_directories;
+}
+
 struct meta_info {
 	posix_time date;
 	std::string title;
@@ -119,8 +130,6 @@ static meta_info read_meta(const std::string & path)
 
 static void collect_information(const std::string & source_root_directory)
 {
-	namespace fs = std::filesystem;
-
 	const fs::path source_path{source_root_directory};
 
 	if (!fs::exists(source_path) || !fs::is_directory(source_path))
@@ -209,7 +218,7 @@ static bool contains(
 
 static std::string convert_path(const std::string & fn)
 {
-	std::filesystem::path path{fn};
+	fs::path path{fn};
 	if (contains(path.extension().string(), system::cfg().get_source_process_filetypes())) {
 		return path.replace_extension(".html").string();
 	}
@@ -272,8 +281,6 @@ static std::string prepare_page_tag_list(const std::string & filename_in)
 static bool conversion_necessary(
 	const std::string & filename_in, const std::string & filename_out)
 {
-	namespace fs = std::filesystem;
-
 	if (!fs::exists(filename_in))
 		return false;
 	if (!fs::exists(filename_out))
@@ -296,8 +303,6 @@ static bool conversion_necessary(
 
 static bool ensure_path_for_file(const std::string & filename)
 {
-	namespace fs = std::filesystem;
-
 	if (filename.empty())
 		return true;
 
@@ -341,23 +346,19 @@ static bool write_document_from_json(
 
 static std::vector<std::string> split_path(const std::string & path)
 {
-	std::filesystem::path p{path};
+	fs::path p{path};
 	return std::vector<std::string>{p.begin(), p.end()};
 }
 
-static std::string join_path(const std::vector<std::string> & parts)
+template <typename Iterator> static std::string join_path(Iterator begin, Iterator end)
 {
 	// std::experimental::filesystem::path(InputIterator, InputIterator)
 	// does not work at the moment, therefore it needs to be done maually
 
-	std::ostringstream os;
-	auto i = parts.begin();
-	os << *i;
-	++i;
-	for (; i != parts.end(); ++i) {
-		os << std::filesystem::path::preferred_separator << *i;
-	}
-	return os.str();
+	fs::path p;
+	for (; begin != end; ++begin)
+		p /= *begin;
+	return p.string();
 }
 
 static std::string replace_root(const std::string & link)
@@ -379,7 +380,7 @@ static std::string replace_root(const std::string & link)
 	} else {
 		parts[0] = system::cfg().get_site_url() + entry->url;
 	}
-	return join_path(parts);
+	return join_path(parts.begin(), parts.end());
 }
 
 static void handle_link(nlohmann::json & data)
@@ -567,8 +568,6 @@ static void process_pages(const std::string source_directory,
 				"error: " + specific_dir + " is not a subdir of " + source_directory};
 	}
 
-	namespace fs = std::filesystem;
-
 	for (const auto & entry : fs::recursive_directory_iterator{source_directory}) {
 		fs::path path{entry.path()};
 		if (!specific_dir.empty() && fs::is_directory(path) && (specific_dir != path))
@@ -582,7 +581,7 @@ static void process_pages(const std::string source_directory,
 static std::string read_file_contents(
 	const std::string & filename, const std::string & default_value)
 {
-	if (!std::filesystem::exists(filename)) {
+	if (!fs::exists(filename)) {
 		return default_value;
 	}
 	std::ostringstream os;
@@ -627,7 +626,7 @@ static std::string get_meta_contents()
 
 static std::string create_temp_directory()
 {
-	std::string path = (std::filesystem::temp_directory_path() / "mkwebtmp-XXXXXX").string();
+	std::string path = (fs::temp_directory_path() / "mkwebtmp-XXXXXX").string();
 	::mkdtemp(&path[0]);
 	return path;
 }
@@ -642,11 +641,8 @@ Container sorted(const Container & c, Comparison comp)
 
 static void process_overview(
 	const std::unordered_map<std::string, std::vector<std::string>> & items,
-	const std::string & name,
-	const std::string & file_meta_info)
+	const std::string & name, const std::string & file_meta_info)
 {
-	namespace fs = std::filesystem;
-
 	const auto date_str = posix_time::now().str_date();
 	const auto author = system::cfg().get_author();
 
@@ -670,13 +666,13 @@ static void process_overview(
 				ofs << "- [" << global.meta[fn].title << "](" << link << ")\n";
 			}
 		} catch (...) {
-			std::filesystem::remove_all(tmp);
+			fs::remove_all(tmp);
 			throw std::runtime_error{"error in processing " + name + " file for: " + id};
 		}
 	}
 
 	process_pages(tmp, path);
-	std::filesystem::remove_all(tmp);
+	fs::remove_all(tmp);
 }
 
 static void process_front()
@@ -709,10 +705,8 @@ static void process_front()
 
 				const auto & info = global.meta[fn];
 
-				const auto link = std::filesystem::path{fn}.replace_extension(".html")
-									  .string();
-				ofs << "  - `" << date_str << "` : [" << info.title
-					<< "](" << link << ")\n";
+				const auto link = fs::path{fn}.replace_extension(".html").string();
+				ofs << "  - `" << date_str << "` : [" << info.title << "](" << link << ")\n";
 
 				if (!info.summary.empty()) {
 					ofs << '\n' << "    " << info.summary << '\n';
@@ -726,17 +720,15 @@ static void process_front()
 		ensure_path_for_file(destination_filename);
 		process_document(index_filename, destination_filename);
 	} catch (...) {
-		std::filesystem::remove_all(tmp);
+		fs::remove_all(tmp);
 		throw std::runtime_error{"error in processing front page"};
 	}
 
-	std::filesystem::remove_all(tmp);
+	fs::remove_all(tmp);
 }
 
 static void process_redirect(const std::string & directory)
 {
-	namespace fs = std::filesystem;
-
 	static const std::string content_fmt = "<!DOCTYPE html>\n"
 										   "<html><head><meta http-equiv=\"refresh\" "
 										   "content=\"0;url=%s\"></head><body></body></html>\n";
@@ -758,6 +750,65 @@ static void process_redirect(const std::string & directory)
 			// intentionally ignored
 		}
 	}
+}
+
+static void copy(
+	const fs::path & from, const fs::path & to, std::function<bool(const fs::path &)> ignore)
+{
+	if (fs::is_regular_file(from) && !ignore(from)) {
+		ensure_path_for_file(to.string());
+		fs::copy(from, to, fs::copy_options::update_existing | fs::copy_options::skip_symlinks);
+		return;
+	}
+
+	if (fs::is_directory(from)) {
+		// empty directories are ignored
+		for (const auto entry : fs::recursive_directory_iterator(from)) {
+			const fs::path & path = entry.path();
+
+			if (ignore(path))
+				continue;
+
+			// replace top path of source with the destination path and copy file
+			const fs::path & dst = to / join_path(++path.begin(), path.end());
+			ensure_path_for_file(dst.string());
+			fs::copy(
+				path, dst, fs::copy_options::update_existing | fs::copy_options::skip_symlinks);
+		}
+		return;
+	}
+}
+
+static void copy(const fs::path & from, const fs::path & to)
+{
+	// ignore none
+	copy(from, to, [](const fs::path &) -> bool { return false; });
+}
+
+static void process_copy_file()
+{
+	std::cout << "copy files\n";
+
+	// if no static directory is configured, we assume the source directory to
+	// contain files to copy. Just let's ignore the file types we are already
+	// processing. if there is a static directory, just copy this and ignore the
+	// source directory.
+	if (system::cfg().get_static().empty()) {
+		mkweb::copy(system::cfg().get_static(), system::cfg().get_destination(),
+			[](const fs::path & path) {
+				return fs::is_regular_file(path)
+					&& contains(path.extension().string(),
+						   system::cfg().get_source_process_filetypes());
+			});
+	} else {
+		mkweb::copy(system::cfg().get_static(), system::cfg().get_destination());
+	}
+}
+
+static void process_copy_plugins()
+{
+	std::cout << "copy plugins\n";
+	// TODO
 }
 }
 
@@ -805,10 +856,10 @@ int main(int argc, char ** argv)
 	using namespace mkweb;
 
 	// validation
-	if (!std::filesystem::exists(config_filename))
+	if (!fs::exists(config_filename))
 		throw std::runtime_error{"config file not readable: " + config_filename};
 	if (config_pandoc.size()) {
-		if (!std::filesystem::exists(config_pandoc))
+		if (!fs::exists(config_pandoc))
 			throw std::runtime_error{"executable not found: " + config_pandoc};
 		system::set_pandoc(config_pandoc);
 	}
@@ -824,12 +875,12 @@ int main(int argc, char ** argv)
 
 	// generate site
 	if (!config_file.empty()) {
-		if (!std::filesystem::exists(config_file))
+		if (!fs::exists(config_file))
 			throw std::runtime_error{"specified file does not exist: " + config_file};
-		if (std::filesystem::is_directory(config_file)) {
+		if (fs::is_directory(config_file)) {
 			process_pages(
 				system::cfg().get_source(), system::cfg().get_destination(), config_file);
-		} else if (std::filesystem::is_regular_file(config_file)) {
+		} else if (fs::is_regular_file(config_file)) {
 			process_single(
 				system::cfg().get_source(), system::cfg().get_destination(), config_file);
 		} else {
@@ -845,16 +896,11 @@ int main(int argc, char ** argv)
 		config_plugins = true;
 	}
 
-	// copy files
 	if (config_copy) {
-		std::cout << "copy files\n";
-		// TODO
+		process_copy_file();
 	}
-
-	// copy plugins
 	if (config_plugins) {
-		std::cout << "copy plugins\n";
-		// TODO
+		process_copy_plugins();
 	}
 
 	return 0;

@@ -5,11 +5,6 @@
 #include <linux/limits.h>
 #include "config.hpp"
 
-namespace std
-{
-namespace filesystem = experimental::filesystem;
-}
-
 namespace
 {
 static std::string path_to_binary()
@@ -31,6 +26,11 @@ static std::string path_to_binary()
 
 namespace mkweb
 {
+namespace fs
+{
+using std::experimental::filesystem::exists;
+}
+
 std::shared_ptr<config> system::cfg_;
 std::string system::pandoc_ = "pandoc";
 
@@ -58,7 +58,7 @@ std::string system::get_theme_path()
 	const std::string pb = path_to_binary();
 	std::string path
 		= pb + "/../shared/themes/" + cfg_->get_theme() + '.' + cfg_->get_language() + '/';
-	if (std::filesystem::exists(path))
+	if (fs::exists(path))
 		return path;
 	return pb + "/../shared/themes/" + cfg_->get_theme() + '/';
 }
@@ -91,7 +91,7 @@ std::string system::get_theme_style()
 std::string system::get_theme_footer()
 {
 	const auto path = get_theme_path() + "footer.html";
-	return std::filesystem::exists(path) ? path : std::string{};
+	return fs::exists(path) ? path : std::string{};
 }
 
 std::string system::pandoc() { return pandoc_; }
