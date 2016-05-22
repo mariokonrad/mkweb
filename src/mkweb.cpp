@@ -640,12 +640,12 @@ Container sorted(const Container & c, Comparison comp)
 
 static void process_overview(
 	const std::unordered_map<std::string, std::vector<std::string>> & items,
-	const std::string & name)
+	const std::string & name,
+	const std::string & file_meta_info)
 {
 	namespace fs = std::filesystem;
 
 	const auto date_str = posix_time::now().str_date();
-	const auto file_meta_info = get_meta_tags();
 	const auto author = system::cfg().get_author();
 
 	const auto path = system::cfg().get_destination() + '/' + name;
@@ -744,22 +744,20 @@ int main(int argc, char ** argv)
 		if (!std::filesystem::exists(config_file))
 			throw std::runtime_error{"specified file does not exist: " + config_file};
 		if (std::filesystem::is_directory(config_file)) {
-			// TODO
-			// process_pages(config.get_source(), config.get_destination(), specific_dir = path)
+			process_pages(
+				system::cfg().get_source(), system::cfg().get_destination(), config_file);
 		} else if (std::filesystem::is_regular_file(config_file)) {
-			// TODO
 			process_single(
 				system::cfg().get_source(), system::cfg().get_destination(), config_file);
 		} else {
 			throw std::runtime_error{"unable to process file type"};
 		}
 	} else {
-		// TODO
-		process_overview(global.tags, "tag");
-		process_overview(global.years, "year");
-		// process_pages(config.get_source(), config.get_destination())
-		// process_front()
-		// process_redirect(config.get_destination())
+		process_overview(global.tags, "tag", get_meta_tags());
+		process_overview(global.years, "year", get_meta_years());
+		process_pages(system::cfg().get_source(), system::cfg().get_destination());
+		// TODO: process_front()
+		// TODO: process_redirect(config.get_destination())
 		config_copy = true;
 		config_plugins = true;
 	}
