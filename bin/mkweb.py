@@ -285,6 +285,8 @@ def collect_information(root_directory):
 		for fn in filelist:
 			filename = dirname + '/' + fn
 			rel_filename = os.path.relpath(dirname, root_directory) + '/' + fn
+			if rel_filename.startswith('./'):
+				rel_filename = rel_filename[2:]
 			meta = read_meta(filename)
 
 			# if a file does not provide metadata, there is nothing
