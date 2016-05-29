@@ -623,7 +623,8 @@ static std::string get_meta_contents()
 static std::string create_temp_directory()
 {
 	std::string path = (fs::temp_directory_path() / "mkwebtmp-XXXXXX").string();
-	::mkdtemp(&path[0]);
+	if (::mkdtemp(&path[0]) == nullptr)
+		throw std::runtime_error{"Unable to create temporary directory"};
 	return path;
 }
 

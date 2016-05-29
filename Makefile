@@ -2,7 +2,7 @@
 
 export CC=gcc-6
 export CXX=g++-6
-export CXXFLAGS=-Wall -Wextra -pedantic -O0 -ggdb -std=c++1z -static
+export CXXFLAGS=-Wall -Wextra -pedantic -O3 -ggdb -std=c++1z -static
 
 STRIP=strip
 STRIPFLAGS=-s
