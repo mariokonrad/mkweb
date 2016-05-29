@@ -7,23 +7,11 @@ export CXXFLAGS=-Wall -Wextra -pedantic -O3 -ggdb -std=c++1z -static
 STRIP=strip
 STRIPFLAGS=-s
 
-default : mkweb
-
-filter : src/filter.cpp
-	$(CXX) $(CXXFLAGS) -Isrc -o $@ $^
-	$(STRIP) $(STRIPFLAGS) $@
-
-meta : src/meta.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $^ -Isrc -I`pwd`/local/include -L`pwd`/local/lib -lyaml-cpp
-	$(STRIP) $(STRIPFLAGS) $@
-
 mkweb : bin/mkwebc
 
 bin/mkwebc : config.o system.o mkweb.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ -L`pwd`/local/lib -lyaml-cpp -lfmt -lstdc++fs
-
-configdump : config.o system.o configdump.o
-	$(CXX) $(CXXFLAGS) -o $@ $^ -L`pwd`/local/lib -lyaml-cpp
+	$(STRIP) $(STRIPFLAGS) $@
 
 yaml :
 	if [ ! -d local ] ; then mkdir local ;fi
@@ -42,11 +30,8 @@ fmt :
 	rm -fr build
 
 clean :
-	rm -fr build
 	rm -f *.o
-	rm -f filter
-	rm -f meta
-	rm -f configdump
+	rm -fr build
 	rm -f bin/mkwebc
 
 clean-all : clean
