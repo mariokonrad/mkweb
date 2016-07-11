@@ -159,6 +159,45 @@ static void collect_information(const std::string & source_root_directory)
 	}
 }
 
+static std::vector<std::string> split_path(const std::string & path)
+{
+	fs::path p{path};
+	return std::vector<std::string>{p.begin(), p.end()};
+}
+
+template <typename Iterator> static std::string join_path(Iterator begin, Iterator end)
+{
+	// std::experimental::filesystem::path(InputIterator, InputIterator)
+	// does not work at the moment, therefore it needs to be done maually
+
+	fs::path p;
+	for (; begin != end; ++begin)
+		p /= *begin;
+	return p.string();
+}
+
+static std::string replace_root(const std::string & link)
+{
+	auto parts = split_path(link);
+
+	if (parts.size() < 2)
+		return link;
+
+	const auto path_map = system::cfg().get_path_map();
+	const auto entry = std::find_if(
+		begin(path_map), end(path_map), [&](const auto & a) { return a.base == parts[0]; });
+
+	if (entry == end(path_map))
+		return link;
+
+	if (entry->absolute) {
+		parts[0] = entry->url;
+	} else {
+		parts[0] = system::cfg().get_site_url() + entry->url;
+	}
+	return join_path(parts.begin(), parts.end());
+}
+
 static std::string prepare_tag_list(std::vector<std::string> tags)
 {
 	if (tags.size() == 0)
@@ -262,8 +301,8 @@ static std::string prepare_global_pagelist(
 	for (const auto & entry : ids) {
 		const auto filename = entry.second;
 		const auto title = meta.find(filename)->second.title; // single-thread, still valid
-		os << "<li><a href=\"" << site_url << convert_path(filename) << "\">" << title
-		   << "</a></li>";
+		const auto url = replace_root(convert_path(filename));
+		os << "<li><a href=\"" << url << "\">" << title << "</a></li>";
 	}
 	os << "</ul>";
 	return os.str();
@@ -341,45 +380,6 @@ static bool write_document_from_json(
 	auto rc = p.wait();
 
 	return (rc == 0) && (os.tellp() == 0);
-}
-
-static std::vector<std::string> split_path(const std::string & path)
-{
-	fs::path p{path};
-	return std::vector<std::string>{p.begin(), p.end()};
-}
-
-template <typename Iterator> static std::string join_path(Iterator begin, Iterator end)
-{
-	// std::experimental::filesystem::path(InputIterator, InputIterator)
-	// does not work at the moment, therefore it needs to be done maually
-
-	fs::path p;
-	for (; begin != end; ++begin)
-		p /= *begin;
-	return p.string();
-}
-
-static std::string replace_root(const std::string & link)
-{
-	auto parts = split_path(link);
-
-	if (parts.size() < 2)
-		return link;
-
-	const auto path_map = system::cfg().get_path_map();
-	const auto entry = std::find_if(
-		begin(path_map), end(path_map), [&](const auto & a) { return a.base == parts[0]; });
-
-	if (entry == end(path_map))
-		return link;
-
-	if (entry->absolute) {
-		parts[0] = entry->url;
-	} else {
-		parts[0] = system::cfg().get_site_url() + entry->url;
-	}
-	return join_path(parts.begin(), parts.end());
 }
 
 static void handle_link(nlohmann::json & data)

@@ -1,5 +1,6 @@
 #include "config.hpp"
 #include <algorithm>
+#include <regex>
 #include <yaml-cpp/yaml.h>
 
 namespace mkweb
@@ -148,9 +149,43 @@ std::string config::get_site_title_background() const
 
 std::string config::get_copyright() const { return get_themed("copyright"); }
 
+std::string config::get_node_str(
+	const std::string & tag, const std::string & default_value) const
+{
+	return (node()[tag] && node()[tag].IsScalar()) ? node()[tag].as<std::string>()
+												   : default_value;
+}
+
+std::string config::substitue_vars(const std::string & s) const
+{
+	static const std::regex variable_regex("\\$\\{[0-9a-zA-Z_]+\\}");
+
+	std::string result;
+
+	auto callback = [&](const std::string & m) {
+		if (m.empty())
+			return;
+
+		if (m[0] != '$' || (m.size() < 3)) {
+			result.append(m);
+			return;
+		}
+
+		const auto substitute_tag = m.substr(2, m.size() - 3);
+		const auto substitute_text = get_node_str(substitute_tag, "");
+		result.append(substitute_text);
+	};
+
+	std::sregex_token_iterator begin(s.begin(), s.end(), variable_regex, {-1, 0});
+	std::sregex_token_iterator end;
+	std::for_each(begin, end, callback);
+
+	return result;
+}
+
 std::string config::get_str(const std::string & tag, const std::string & default_value) const
 {
-	return (node()[tag] && node()[tag].IsScalar()) ? node()[tag].as<std::string>() : default_value;
+	return substitue_vars(get_node_str(tag, default_value));
 }
 
 int config::get_int(const std::string & tag, int default_value) const

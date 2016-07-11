@@ -1,0 +1,14 @@
+" This local vim configuration assumes the build directory be in the root
+" of the source tree named 'build'
+"
+" This just my personal preference for normal day-to-day development of this project.
+
+" grepping
+map <F4> :grep -Ernw --include=*.c* --include=*.h* <cword> src <Bar> cw<CR>
+
+" youcompleteme
+let g:ycm_confirm_extra_conf=0
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_check_on_open=1
+let g:syntastic_enable_signs=1
+

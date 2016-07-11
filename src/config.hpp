@@ -78,6 +78,8 @@ private:
 
 	const YAML::Node & node() const;
 
+	std::string get_node_str(const std::string & tag, const std::string & default_value) const;
+	std::string substitue_vars(const std::string & s) const;
 	std::string get_str(const std::string & tag, const std::string & default_value) const;
 	int get_int(const std::string & tag, int default_value) const;
 	bool get_bool(const std::string & tag, bool default_value) const;
