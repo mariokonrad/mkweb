@@ -1,5 +1,3 @@
-.PHONY: default clean clean-all mkweb
-
 export CC=gcc-6
 export CXX=g++-6
 export CXXFLAGS=-Wall -Wextra -pedantic -O3 -ggdb -std=c++1z -static
@@ -7,35 +5,44 @@ export CXXFLAGS=-Wall -Wextra -pedantic -O3 -ggdb -std=c++1z -static
 STRIP=strip
 STRIPFLAGS=-s
 
-mkweb : bin/mkwebc
+.PHONY: mkweb
+mkweb : bin/mkweb
 
-bin/mkwebc : config.o system.o mkweb.o
+bin/mkweb : config.o system.o mkweb.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ -L`pwd`/local/lib -lyaml-cpp -lfmt -lstdc++fs
 	$(STRIP) $(STRIPFLAGS) $@
 
+.PHONY: prepare
+prepare : yaml fmt cxxopts json
+
+.PHONY: yaml
 yaml :
-	if [ ! -d local ] ; then mkdir local ;fi
-	mkdir build
-	(cd build ; cmake ~/local/repo/yaml-cpp -DCMAKE_INSTALL_PREFIX=`pwd`/../local -DYAML_CPP_BUILD_TOOLS=OFF -DYAML_CPP_BUILD_CONTRIB=OFF)
-	(cd build ; make -j 8)
-	(cd build ; make install)
-	rm -fr build
+	bin/build-yaml-cpp.sh `pwd`/build `pwd`/local
 
+.PHONY: fmt
 fmt :
-	if [ ! -d local ] ; then mkdir local ;fi
-	mkdir build
-	(cd build ; cmake ~/local/repo/fmt -DCMAKE_INSTALL_PREFIX=`pwd`/../local -DFMT_USE_CPP11=ON -DFMT_TEST=OFF -DFMT_DOC=OFF)
-	(cd build ; make -j 8)
-	(cd build ; make install)
-	rm -fr build
+	bin/build-fmt.sh `pwd`/build `pwd`/local
 
+.PHONY: cxxopts
+cxxopts :
+	bin/build-cxxopts.sh `pwd`/build `pwd`/local
+
+.PHONY: json
+json :
+	bin/build-json.sh `pwd`/build `pwd`/local
+
+.PHONY: clean
 clean :
 	rm -f *.o
 	rm -fr build
-	rm -f bin/mkwebc
 
+.PHONY: clean-all
 clean-all : clean
 	rm -fr local
+
+.PHONY: clean-complete
+clean-complete : clean-all
+	rm -f bin/mkweb
 
 %.o : src/%.cpp
 	$(CXX) $(CXXFLAGS) -o $@ -c $< -Isrc -I`pwd`/local/include
