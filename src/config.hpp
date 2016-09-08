@@ -1,9 +1,9 @@
 #ifndef __MKWEB__CONFIG_HPP__
 #define __MKWEB__CONFIG_HPP__
 
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
 namespace YAML
 {
@@ -23,9 +23,9 @@ public:
 
 	enum class sort_direction { ascending, descending };
 
-	struct pagelist_sort_desc {
-		sort_direction dir;
-		std::string key;
+	struct sort_description {
+		sort_direction dir = sort_direction::ascending;
+		std::string key = "title";
 	};
 
 	~config();
@@ -68,7 +68,8 @@ public:
 	bool get_years_enable() const;
 	bool get_pagelist_enable() const;
 
-	pagelist_sort_desc get_pagelist_sort() const;
+	sort_description get_pagelist_sort() const;
+	sort_description get_yearlist_sort() const;
 
 	std::string get_site_title_background() const;
 	std::string get_copyright() const;
@@ -84,7 +85,10 @@ private:
 	int get_int(const std::string & tag, int default_value) const;
 	bool get_bool(const std::string & tag, bool default_value) const;
 	std::string get_themed(const std::string field, const std::string & default_value = "") const;
+	sort_description get_sort_description(const std::string & name) const;
 };
+
+bool operator<(const config::sort_description &, const config::sort_description &);
 }
 
 #endif

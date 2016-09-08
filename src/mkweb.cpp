@@ -1,8 +1,8 @@
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <sstream>
 #include <string>
-#include <map>
 #include <unordered_map>
 #include <unordered_set>
 #include <experimental/optional>
@@ -266,6 +266,21 @@ static std::string convert_path(const std::string & fn)
 	return std::string{};
 }
 
+static void sort(std::vector<std::pair<std::string, std::string>> & ids,
+	const config::sort_description & desc)
+{
+	switch (desc.dir) {
+		case config::sort_direction::ascending:
+			std::sort(begin(ids), end(ids),
+				[](const auto & a, const auto & b) { return a.first < b.first; });
+			break;
+		case config::sort_direction::descending:
+			std::sort(begin(ids), end(ids),
+				[](const auto & a, const auto & b) { return a.first > b.first; });
+			break;
+	}
+}
+
 static std::string prepare_global_pagelist(
 	const std::unordered_map<std::string, meta_info> & meta)
 {
@@ -285,17 +300,7 @@ static std::string prepare_global_pagelist(
 		throw std::runtime_error{"sort key not supported: " + sort_desc.key};
 	}
 
-	// sort ids
-	switch (sort_desc.dir) {
-		case config::sort_direction::ascending:
-			std::sort(begin(ids), end(ids),
-				[](const auto & a, const auto & b) { return a.first < b.first; });
-			break;
-		case config::sort_direction::descending:
-			std::sort(begin(ids), end(ids),
-				[](const auto & a, const auto & b) { return a.first > b.first; });
-			break;
-	}
+	sort(ids, sort_desc);
 
 	// generate HTML list of sorted entries
 	const auto site_url = system::cfg().get_site_url();
@@ -623,6 +628,11 @@ static std::string get_meta_contents()
 																		  "---\n");
 }
 
+static std::string get_title_newest_entries()
+{
+	return read_file_contents(system::get_theme_title_newest_entries(), "Newest Entries:");
+}
+
 static std::string create_temp_directory()
 {
 	std::string path = (fs::temp_directory_path() / "mkwebtmp-XXXXXX").string();
@@ -639,6 +649,53 @@ Container sorted(const Container & c, Comparison comp)
 	return t;
 }
 
+static std::function<bool(const std::string &, const std::string &)> get_overview_sorting(
+	const std::string & name)
+{
+	static const std::map<config::sort_description,
+		std::function<bool(const std::string &, const std::string &)>>
+		func_map = {
+			{{config::sort_direction::ascending, "date"},
+				[](const auto & a, const auto & b) {
+					return global.meta[a].date < global.meta[b].date;
+				}},
+			{{config::sort_direction::descending, "date"},
+				[](const auto & a, const auto & b) {
+					return global.meta[a].date > global.meta[b].date;
+				}},
+			{{config::sort_direction::ascending, "title"},
+				[](const auto & a, const auto & b) {
+					return global.meta[a].title < global.meta[b].title;
+				}},
+			{{config::sort_direction::descending, "title"},
+				[](const auto & a, const auto & b) {
+					return global.meta[a].title > global.meta[b].title;
+				}},
+		};
+
+	config::sort_description desc;
+
+	if (name == "year")
+		desc = system::cfg().get_yearlist_sort();
+
+	const auto i = func_map.find(desc);
+	if (i != func_map.end())
+		return i->second;
+
+	// default comparator
+	return [](
+		const auto & a, const auto & b) { return global.meta[a].title > global.meta[b].title; };
+}
+
+static std::function<std::string(const meta_info &)> get_overview_decoration(
+	const std::string & name)
+{
+	if (name == "year")
+		return [](const meta_info & info) { return "`" + info.date.str_date() + "` "; };
+
+	return [](const meta_info &) { return std::string{}; };
+}
+
 static void process_overview(
 	const std::unordered_map<std::string, std::vector<std::string>> & items,
 	const std::string & name, const std::string & file_meta_info)
@@ -650,8 +707,8 @@ static void process_overview(
 	ensure_path_for_file(path + '/');
 	auto tmp = create_temp_directory();
 
-	auto by_title = [](
-		const auto & a, const auto & b) { return global.meta[a].title < global.meta[b].title; };
+	const auto sorting = get_overview_sorting(name);
+	const auto decoration = get_overview_decoration(name);
 
 	for (auto const & entry : items) {
 		const std::string id = entry.first;
@@ -661,9 +718,10 @@ static void process_overview(
 			ofs << fmt::sprintf(file_meta_info, id, author, date_str) << '\n';
 
 			// write list of links
-			for (const auto & fn : sorted(entry.second, by_title)) {
+			for (const auto & fn : sorted(entry.second, sorting)) {
+				const auto info = global.meta[fn];
 				const auto link = fs::path{fn}.replace_extension(".html").string();
-				ofs << "- [" << global.meta[fn].title << "](" << link << ")\n";
+				ofs << "- " << decoration(info) << "[" << info.title << "](" << link << ")\n";
 			}
 		} catch (...) {
 			fs::remove_all(tmp);
@@ -690,7 +748,7 @@ static void process_front()
 	try {
 		std::ofstream ofs{index_filename.c_str()};
 		ofs << fmt::sprintf(get_meta_contents(), author, date_str) << '\n';
-		ofs << "Newest Entries:\n\n";
+		ofs << get_title_newest_entries() << "\n\n";
 
 		const auto num = system::cfg().get_num_news();
 		auto count = 0;
@@ -849,7 +907,7 @@ int main(int argc, char ** argv)
 	bool config_plugins = false;
 
 	// clang-format off
-	cxxopts::Options options{argv[0], " - configuration read demo"};
+	cxxopts::Options options{argv[0], "mkweb - Static Website Generator"};
 	options.add_options()
 		("h,help",
 			"Shows help information")

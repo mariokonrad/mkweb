@@ -14,6 +14,11 @@ static bool in(const typename Container::value_type & element, const Container &
 }
 }
 
+bool operator<(const config::sort_description & a, const config::sort_description & b)
+{
+	return std::tie(a.dir, a.key) < std::tie(b.dir, b.key);
+}
+
 config::~config() {}
 
 config::config(const std::string & filename)
@@ -114,14 +119,14 @@ bool config::get_years_enable() const { return get_bool("years-enable", false); 
 
 bool config::get_pagelist_enable() const { return get_bool("pagelist-enable", false); }
 
-config::pagelist_sort_desc config::get_pagelist_sort() const
+config::sort_description config::get_sort_description(const std::string & name) const
 {
 	static const std::vector<std::string> valid_directions = {"ascending", "descending"};
 	static const std::vector<std::string> valid_keys = {"title", "date"};
 
-	const auto & pls = node()["pagelist-sort"];
+	const auto & pls = node()[name];
 
-	pagelist_sort_desc result{sort_direction::ascending, "title"};
+	sort_description result;
 
 	if (pls) {
 		if (pls["direction"]) {
@@ -140,6 +145,16 @@ config::pagelist_sort_desc config::get_pagelist_sort() const
 		}
 	}
 	return result;
+}
+
+config::sort_description config::get_pagelist_sort() const
+{
+	return get_sort_description("pagelist-sort");
+}
+
+config::sort_description config::get_yearlist_sort() const
+{
+	return get_sort_description("yearlist-sort");
 }
 
 std::string config::get_site_title_background() const

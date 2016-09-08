@@ -75,7 +75,7 @@ std::string system::get_theme_template_meta_tags()
 
 std::string system::get_theme_template_meta_years()
 {
-	return get_theme_path() + "meta-years.txt";
+	return get_theme_path() + "meta-year.txt";
 }
 
 std::string system::get_theme_template_meta_contents()
@@ -92,6 +92,11 @@ std::string system::get_theme_footer()
 {
 	const auto path = get_theme_path() + "footer.html";
 	return fs::exists(path) ? path : std::string{};
+}
+
+std::string system::get_theme_title_newest_entries()
+{
+	return get_theme_path() + "title_newest_entries.txt";
 }
 
 std::string system::pandoc() { return pandoc_; }

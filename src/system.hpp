@@ -24,6 +24,7 @@ public:
 	static std::string get_theme_template_meta_contents();
 	static std::string get_theme_style();
 	static std::string get_theme_footer();
+	static std::string get_theme_title_newest_entries();
 
 	static std::string pandoc();
 	static void set_pandoc(const std::string & path);
