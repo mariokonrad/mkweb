@@ -1,0 +1,14 @@
+#!/bin/bash -eu
+
+script_dir=$(dirname `readlink -f $0`)
+
+build_dir=${script_dir}/../build.local
+install_prefix=${script_dir}/../local
+
+${script_dir}/build-yaml-cpp.sh ${build_dir} ${install_prefix}
+${script_dir}/build-fmt.sh      ${build_dir} ${install_prefix}
+${script_dir}/build-cxxopts.sh  ${build_dir} ${install_prefix}
+${script_dir}/build-json.sh     ${build_dir} ${install_prefix}
+
+rm -fr ${build_dir}
+

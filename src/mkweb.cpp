@@ -16,6 +16,7 @@
 #include "config.hpp"
 #include "posix_time.hpp"
 #include "subprocess.hpp"
+#include "version.hpp"
 
 namespace mkweb
 {
@@ -907,10 +908,12 @@ int main(int argc, char ** argv)
 	bool config_plugins = false;
 
 	// clang-format off
-	cxxopts::Options options{argv[0], "mkweb - Static Website Generator"};
+	cxxopts::Options options{argv[0], std::string{mkweb::project_name} + " - Static Website Generator"};
 	options.add_options()
 		("h,help",
 			"Shows help information")
+		("version",
+			"shows version")
 		("c,config",
 			"Read config from the specified file",
 			cxxopts::value<std::string>(config_filename))
@@ -938,6 +941,12 @@ int main(int argc, char ** argv)
 	}
 
 	using namespace mkweb;
+
+	if (options.count("version")) {
+		std::cout << project_name << ' ' << version_major << '.' << version_minor << '.'
+				  << version_patch << '\n';
+		return 0;
+	}
 
 	// validation
 	if (!fs::exists(config_filename))

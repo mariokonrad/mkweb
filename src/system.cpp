@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <linux/limits.h>
 #include "config.hpp"
+#include "version.hpp"
 
 namespace
 {
@@ -21,6 +22,11 @@ static std::string path_to_binary()
 
 	std::string p{path};
 	return p.substr(0, p.find_last_of('/'));
+}
+
+static std::string path_to_shared()
+{
+	return path_to_binary() + "/../shared/" + mkweb::project_name + '/';
 }
 }
 
@@ -40,7 +46,7 @@ config & system::cfg() { return *cfg_; }
 
 std::string system::get_plugin_path(const std::string & plugin)
 {
-	return path_to_binary() + "/../shared/plugins/" + plugin + '/';
+	return path_to_shared() + "plugins/" + plugin + '/';
 }
 
 std::string system::get_plugin_config(const std::string & plugin)
@@ -55,12 +61,12 @@ std::string system::get_plugin_style(const std::string & plugin)
 
 std::string system::get_theme_path()
 {
-	const std::string pb = path_to_binary();
+	const std::string ps = path_to_shared();
 	std::string path
-		= pb + "/../shared/themes/" + cfg_->get_theme() + '.' + cfg_->get_language() + '/';
+		= ps + "themes/" + cfg_->get_theme() + '.' + cfg_->get_language() + '/';
 	if (fs::exists(path))
 		return path;
-	return pb + "/../shared/themes/" + cfg_->get_theme() + '/';
+	return ps + "themes/" + cfg_->get_theme() + '/';
 }
 
 std::string system::get_theme_template()

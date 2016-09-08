@@ -21,4 +21,5 @@ PointerAlignment: Middle
 ColumnLimit: 96
 MaxEmptyLinesToKeep: 1
 AlignEscapedNewlinesLeft: true
+AllowShortFunctionsOnASingleLine: Inline
 SortIncludes: false

@@ -1,0 +1,12 @@
+#ifndef __MKWEB__VERISION__HPP__
+#define __MKWEB__VERISION__HPP__
+
+namespace mkweb
+{
+constexpr auto project_name = "@PROJECT_NAME@";
+constexpr auto version_major = "@PROJECT_VERSION_MAJOR@";
+constexpr auto version_minor = "@PROJECT_VERSION_MINOR@";
+constexpr auto version_patch = "@PROJECT_VERSION_PATCH@";
+}
+
+#endif
