@@ -316,15 +316,33 @@ static std::string prepare_global_pagelist(
 	// generate HTML list of sorted entries
 	const auto site_url = system::cfg().get_site_url();
 	const auto sort_desc = system::cfg().get_pagelist().sorting;
+	const auto num_entries = system::cfg().get_pagelist().num_entries;
+
+	auto count = 0;
+
+	const auto ids = sorted_ids_of_global_pagelist(meta, sort_desc);
+
 	std::ostringstream os;
 	os << "<ul>";
-	for (const auto & entry : sorted_ids_of_global_pagelist(meta, sort_desc)) {
+	for (const auto & entry : ids) {
+		if ((num_entries != 0) && (count >= num_entries))
+			break;
+		++count;
+
 		const auto filename = entry.second;
 		const auto title = meta.find(filename)->second.title; // single-thread, still valid
 		const auto url = replace_root(convert_path(filename));
 		os << "<li><a href=\"" << url << "\">" << title << "</a></li>";
 	}
 	os << "</ul>";
+
+	if ((system::cfg().get_sitemap().enable) && (num_entries != 0)
+		&& (ids.size() > static_cast<std::size_t>(num_entries))) {
+
+		os << "<div style=\"font-size:80%; font-style:italic;\"><a href=\""
+		   << site_url + system::get_sitemap_filename() << "\">more...</a></div>";
+	}
+
 	return os.str();
 }
 
@@ -785,7 +803,7 @@ static void process_front()
 
 				const auto & info = global.meta[fn];
 
-				const auto link = fs::path{fn}.replace_extension(".html").string();
+				const auto link = replace_root(convert_path(fn));
 				ofs << "  - `" << date_str << "` : [" << info.title << "](" << link << ")\n";
 
 				if (!info.summary.empty()) {
@@ -822,7 +840,8 @@ static void process_sitemap()
 	auto tmp = create_temp_directory();
 
 	const auto index_filename = tmp + "/sitemap.md";
-	const auto destination_filename = system::cfg().get_destination() + "/sitemap.html";
+	const auto destination_filename
+		= system::cfg().get_destination() + "/" + system::get_sitemap_filename();
 
 	try {
 		std::ofstream ofs{index_filename.c_str()};
@@ -833,8 +852,9 @@ static void process_sitemap()
 			if (!meta)
 				continue;
 
-			const auto link = fs::path{entry.second}.replace_extension(".html").string();
-			ofs << " - `" << meta->date.str_date() << "` [" << meta->title << "](" << link << ")\n";
+			const auto link = replace_root(convert_path(entry.second));
+			ofs << " - `" << meta->date.str_date() << "` [" << meta->title << "](" << link
+				<< ")\n";
 		}
 
 		ofs.close();

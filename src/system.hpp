@@ -17,6 +17,7 @@ public:
 	static std::string get_plugin_path(const std::string & plugin);
 	static std::string get_plugin_config(const std::string & plugin);
 	static std::string get_plugin_style(const std::string & plugin);
+	static std::string get_sitemap_filename();
 	static std::string get_theme_path();
 	static std::string get_theme_template();
 	static std::string get_theme_template_meta_tags();

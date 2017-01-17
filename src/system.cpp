@@ -65,14 +65,19 @@ std::string system::get_plugin_style(const std::string & plugin)
 	return get_plugin_path(plugin) + "style.html";
 }
 
+std::string system::get_sitemap_filename()
+{
+	return "sitemap.html";
+}
+
 std::string system::get_theme_path()
 {
 	const std::string ps = path_to_shared();
 	std::string path
-		= ps + "themes/" + cfg_->get_theme().type + '.' + cfg_->get_language() + '/';
+		= ps + "themes/" + cfg().get_theme().type + '.' + cfg().get_language() + '/';
 	if (fs::exists(path))
 		return path;
-	return ps + "themes/" + cfg_->get_theme().type + '/';
+	return ps + "themes/" + cfg().get_theme().type + '/';
 }
 
 std::string system::get_theme_template()

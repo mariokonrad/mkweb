@@ -29,23 +29,24 @@ public:
 	};
 
 	struct theme {
-		std::string type;
+		std::string type = "default";
 		std::string site_title_background;
 		std::string copyright;
 	};
 
 	struct pagelist {
-		bool enable;
+		bool enable = false;
 		sort_description sorting;
+		int num_entries = 0;
 	};
 
 	struct yearlist {
-		bool enable;
+		bool enable = false;
 		sort_description sorting;
 	};
 
 	struct sitemap {
-		bool enable;
+		bool enable = false;
 		sort_description sorting;
 	};
 
@@ -103,6 +104,7 @@ private:
 	std::string get_str(const std::string & tag, const std::string & default_value) const;
 
 	int get_int(const std::string & tag, int default_value) const;
+	int get_int(const std::string & group, const std::string & tag, int default_value) const;
 
 	bool get_bool(const std::string & tag, bool default_value) const;
 	bool get_bool(const std::string & group, const std::string & tag, bool default_value) const;

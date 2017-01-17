@@ -40,7 +40,7 @@ std::string config::get_source() const
 
 std::string config::get_destination() const
 {
-	return get_str("destination", "pages");
+	return get_str("destination", "public");
 }
 
 std::string config::get_static() const
@@ -167,7 +167,8 @@ config::pagelist config::get_pagelist() const
 {
 	static const std::string group = "pagelist";
 
-	return {get_bool(group, "enable", false), get_sort_description(group, "sort")};
+	return {get_bool(group, "enable", false), get_sort_description(group, "sort"),
+		get_int(group, "num_entries", 0)};
 }
 
 config::yearlist config::get_yearlist() const
@@ -262,6 +263,14 @@ std::string config::get_str(const std::string & tag, const std::string & default
 int config::get_int(const std::string & tag, int default_value) const
 {
 	return (node()[tag] && node()[tag].IsScalar()) ? node()[tag].as<int>() : default_value;
+}
+
+int config::get_int(const std::string & group, const std::string & tag, int default_value) const
+{
+	const auto & g = node()[group];
+	if (!g)
+		return get_int(tag, default_value);
+	return (g[tag] && g[tag].IsScalar()) ? g[tag].as<int>() : default_value;
 }
 
 bool config::get_bool(const std::string & tag, bool default_value) const
