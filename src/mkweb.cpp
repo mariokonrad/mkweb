@@ -5,13 +5,19 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+
 #include <experimental/optional>
 #include <experimental/filesystem>
+
 #include <cxxopts.hpp>
+
 #include <yaml-cpp/yaml.h>
+
 #include <nlohmann/json.hpp>
+
 #include <fmt/format.h>
 #include <fmt/printf.h>
+
 #include "system.hpp"
 #include "config.hpp"
 #include "posix_time.hpp"
@@ -285,7 +291,7 @@ static void sort(std::vector<std::pair<std::string, std::string>> & ids,
 static std::string prepare_global_pagelist(
 	const std::unordered_map<std::string, meta_info> & meta)
 {
-	const auto sort_desc = system::cfg().get_pagelist_sort();
+	const auto sort_desc = system::cfg().get_pagelist().sorting;
 
 	// extract sorting criteria, build map key->filename
 	std::vector<std::pair<std::string, std::string>> ids;
@@ -492,7 +498,7 @@ static std::vector<std::string> prepare_pandoc_params(const std::string & filena
 		append(params, {"-V", "sitesubtitle=" + system::cfg().get_site_subtitle()});
 	if (system::cfg().get_tags_enable())
 		append(params, {"-V", "globaltags=" + global.tag_list});
-	if (system::cfg().get_years_enable())
+	if (system::cfg().get_yearlist().enable)
 		append(params, {"-V", "globalyears=" + global.year_list});
 	if (system::cfg().get_social_enable())
 		append(params, {"-V", "social=" + system::cfg().get_social()});
@@ -500,7 +506,7 @@ static std::vector<std::string> prepare_pandoc_params(const std::string & filena
 		append(params, {"-V", "menu=" + system::cfg().get_menu()});
 	if (system::cfg().get_page_tags_enable() && !tags_list.empty())
 		append(params, {"-V", "pagetags=" + tags_list});
-	if (system::cfg().get_pagelist_enable() && !global.page_list.empty())
+	if (system::cfg().get_pagelist().enable && !global.page_list.empty())
 		append(params, {"-V", "globalpagelist=" + global.page_list});
 
 	const auto meta = get_meta_for_source(filename_in);
@@ -512,11 +518,11 @@ static std::vector<std::string> prepare_pandoc_params(const std::string & filena
 	}
 
 	// theme specific stuff
-	if (!system::cfg().get_site_title_background().empty())
+	if (!system::cfg().get_theme().site_title_background.empty())
 		append(params,
-			{"-V", "sitetitle-background=" + system::cfg().get_site_title_background()});
-	if (!system::cfg().get_copyright().empty())
-		append(params, {"-V", "copyright=" + system::cfg().get_copyright()});
+			{"-V", "sitetitle-background=" + system::cfg().get_theme().site_title_background});
+	if (!system::cfg().get_theme().copyright.empty())
+		append(params, {"-V", "copyright=" + system::cfg().get_theme().copyright});
 
 	return params;
 }
@@ -677,7 +683,7 @@ static std::function<bool(const std::string &, const std::string &)> get_overvie
 	config::sort_description desc;
 
 	if (name == "year")
-		desc = system::cfg().get_yearlist_sort();
+		desc = system::cfg().get_yearlist().sorting;
 
 	const auto i = func_map.find(desc);
 	if (i != func_map.end())

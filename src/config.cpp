@@ -19,20 +19,34 @@ bool operator<(const config::sort_description & a, const config::sort_descriptio
 	return std::tie(a.dir, a.key) < std::tie(b.dir, b.key);
 }
 
-config::~config() {}
+config::~config()
+{
+}
 
 config::config(const std::string & filename)
 {
 	node_ = std::make_unique<YAML::Node>(YAML::LoadFile(filename));
 }
 
-const YAML::Node & config::node() const { return *node_; }
+const YAML::Node & config::node() const
+{
+	return *node_;
+}
 
-std::string config::get_source() const { return get_str("source", "pages"); }
+std::string config::get_source() const
+{
+	return get_str("source", "pages");
+}
 
-std::string config::get_destination() const { return get_str("destination", "pages"); }
+std::string config::get_destination() const
+{
+	return get_str("destination", "pages");
+}
 
-std::string config::get_static() const { return get_str("static", "pages"); }
+std::string config::get_static() const
+{
+	return get_str("static", "pages");
+}
 
 std::string config::get_plugin_path(const std::string & plugin) const
 {
@@ -43,7 +57,10 @@ std::string config::get_plugin_path(const std::string & plugin) const
 	return path;
 }
 
-std::string config::get_site_url() const { return get_str("site_url", "?"); }
+std::string config::get_site_url() const
+{
+	return get_str("site_url", "?");
+}
 
 std::string config::get_plugin_url(const std::string & plugin) const
 {
@@ -54,17 +71,30 @@ std::string config::get_plugin_url(const std::string & plugin) const
 	return url;
 }
 
-std::string config::get_site_title() const { return get_str("site_title", "TITLE"); }
+std::string config::get_site_title() const
+{
+	return get_str("site_title", "TITLE");
+}
 
-std::string config::get_site_subtitle() const { return get_str("site_subtitle", ""); }
+std::string config::get_site_subtitle() const
+{
+	return get_str("site_subtitle", "");
+}
 
-std::string config::get_language() const { return get_str("language", ""); }
+std::string config::get_language() const
+{
+	return get_str("language", "");
+}
 
-std::string config::get_theme() const { return get_str("theme", "default"); }
+std::string config::get_author() const
+{
+	return get_str("author", "?");
+}
 
-std::string config::get_author() const { return get_str("author", "?"); }
-
-int config::get_num_news() const { return get_int("num_news", 8); }
+int config::get_num_news() const
+{
+	return get_int("num_news", 8);
+}
 
 std::vector<std::string> config::get_source_process_filetypes() const
 {
@@ -103,28 +133,58 @@ std::vector<config::path_map_entry> config::get_path_map() const
 	return entries;
 }
 
-bool config::get_social_enable() const { return get_bool("social-enable", false); }
+bool config::get_social_enable() const
+{
+	return get_bool("social-enable", false);
+}
 
-std::string config::get_social() const { return get_str("social", ""); }
+std::string config::get_social() const
+{
+	return get_str("social", "");
+}
 
-bool config::get_menu_enable() const { return get_bool("menu-enable", false); }
+bool config::get_menu_enable() const
+{
+	return get_bool("menu-enable", false);
+}
 
-std::string config::get_menu() const { return get_str("menu", ""); }
+std::string config::get_menu() const
+{
+	return get_str("menu", "");
+}
 
-bool config::get_tags_enable() const { return get_bool("tags-enable", false); }
+bool config::get_tags_enable() const
+{
+	return get_bool("tags-enable", false);
+}
 
-bool config::get_page_tags_enable() const { return get_bool("page-tags-enable", false); }
+bool config::get_page_tags_enable() const
+{
+	return get_bool("page-tags-enable", false);
+}
 
-bool config::get_years_enable() const { return get_bool("years-enable", false); }
+config::pagelist config::get_pagelist() const
+{
+	static const std::string group = "pagelist";
 
-bool config::get_pagelist_enable() const { return get_bool("pagelist-enable", false); }
+	return {get_bool(group, "enable", false), get_sort_description(group, "sort")};
+}
 
-config::sort_description config::get_sort_description(const std::string & name) const
+config::yearlist config::get_yearlist() const
+{
+	static const std::string group = "yearlist";
+
+	return {get_bool(group, "enable", false), get_sort_description(group, "sort")};
+}
+
+config::sort_description config::get_sort_description(
+	const std::string & group, const std::string & name) const
 {
 	static const std::vector<std::string> valid_directions = {"ascending", "descending"};
 	static const std::vector<std::string> valid_keys = {"title", "date"};
 
-	const auto & pls = node()[name];
+	const auto & g = node()[group];
+	const auto & pls = g ? g[name] : node()[name];
 
 	sort_description result;
 
@@ -147,22 +207,11 @@ config::sort_description config::get_sort_description(const std::string & name) 
 	return result;
 }
 
-config::sort_description config::get_pagelist_sort() const
+config::theme config::get_theme() const
 {
-	return get_sort_description("pagelist-sort");
+	return {get_str("theme", "default"), get_grouped("theme-config", "site_title_background"),
+		get_grouped("theme-config", "copyright")};
 }
-
-config::sort_description config::get_yearlist_sort() const
-{
-	return get_sort_description("yearlist-sort");
-}
-
-std::string config::get_site_title_background() const
-{
-	return get_themed("site_title_background");
-}
-
-std::string config::get_copyright() const { return get_themed("copyright"); }
 
 std::string config::get_node_str(
 	const std::string & tag, const std::string & default_value) const
@@ -213,12 +262,22 @@ bool config::get_bool(const std::string & tag, bool default_value) const
 	return (node()[tag] && node()[tag].IsScalar()) ? node()[tag].as<bool>() : default_value;
 }
 
-std::string config::get_themed(const std::string field, const std::string & default_value) const
+bool config::get_bool(
+	const std::string & group, const std::string & tag, bool default_value) const
 {
-	const auto & tc = node()["theme-config"];
-	if (!tc)
+	const auto & g = node()[group];
+	if (!g)
+		return get_bool(tag, default_value);
+	return (g[tag] && g[tag].IsScalar()) ? g[tag].as<bool>() : default_value;
+}
+
+std::string config::get_grouped(const std::string & group, const std::string & field,
+	const std::string & default_value) const
+{
+	const auto & g = node()[group];
+	if (!g)
 		return default_value;
 
-	return (tc[field] && tc[field].IsScalar()) ? tc[field].as<std::string>() : default_value;
+	return (g[field] && g[field].IsScalar()) ? g[field].as<std::string>() : default_value;
 }
 }

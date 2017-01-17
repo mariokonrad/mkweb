@@ -40,9 +40,15 @@ using std::experimental::filesystem::exists;
 std::shared_ptr<config> system::cfg_;
 std::string system::pandoc_ = "pandoc";
 
-void system::reset(const std::shared_ptr<config> & cfg) { cfg_ = cfg; }
+void system::reset(const std::shared_ptr<config> & cfg)
+{
+	cfg_ = cfg;
+}
 
-config & system::cfg() { return *cfg_; }
+config & system::cfg()
+{
+	return *cfg_;
+}
 
 std::string system::get_plugin_path(const std::string & plugin)
 {
@@ -63,10 +69,10 @@ std::string system::get_theme_path()
 {
 	const std::string ps = path_to_shared();
 	std::string path
-		= ps + "themes/" + cfg_->get_theme() + '.' + cfg_->get_language() + '/';
+		= ps + "themes/" + cfg_->get_theme().type + '.' + cfg_->get_language() + '/';
 	if (fs::exists(path))
 		return path;
-	return ps + "themes/" + cfg_->get_theme() + '/';
+	return ps + "themes/" + cfg_->get_theme().type + '/';
 }
 
 std::string system::get_theme_template()
@@ -105,7 +111,13 @@ std::string system::get_theme_title_newest_entries()
 	return get_theme_path() + "title_newest_entries.txt";
 }
 
-std::string system::pandoc() { return pandoc_; }
+std::string system::pandoc()
+{
+	return pandoc_;
+}
 
-void system::set_pandoc(const std::string & path) { pandoc_ = path; }
+void system::set_pandoc(const std::string & path)
+{
+	pandoc_ = path;
+}
 }
