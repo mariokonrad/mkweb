@@ -44,6 +44,11 @@ public:
 		sort_description sorting;
 	};
 
+	struct sitemap {
+		bool enable;
+		sort_description sorting;
+	};
+
 	~config();
 
 	config(const std::string & filename);
@@ -82,9 +87,10 @@ public:
 
 	bool get_page_tags_enable() const;
 
+	theme get_theme() const;
 	pagelist get_pagelist() const;
 	yearlist get_yearlist() const;
-	theme get_theme() const;
+	sitemap get_sitemap() const;
 
 private:
 	std::unique_ptr<YAML::Node> node_;

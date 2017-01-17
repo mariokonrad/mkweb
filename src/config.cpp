@@ -177,6 +177,13 @@ config::yearlist config::get_yearlist() const
 	return {get_bool(group, "enable", false), get_sort_description(group, "sort")};
 }
 
+config::sitemap config::get_sitemap() const
+{
+	static const std::string group = "sitemap";
+
+	return {get_bool(group, "enable", false), get_sort_description(group, "sort")};
+}
+
 config::sort_description config::get_sort_description(
 	const std::string & group, const std::string & name) const
 {

@@ -95,6 +95,11 @@ std::string system::get_theme_template_meta_contents()
 	return get_theme_path() + "meta-contents.txt";
 }
 
+std::string system::get_theme_template_meta_sitemap()
+{
+	return get_theme_path() + "meta-sitemap.txt";
+}
+
 std::string system::get_theme_style()
 {
 	return get_theme_path() + "style.html";

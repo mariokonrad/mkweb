@@ -288,11 +288,10 @@ static void sort(std::vector<std::pair<std::string, std::string>> & ids,
 	}
 }
 
-static std::string prepare_global_pagelist(
-	const std::unordered_map<std::string, meta_info> & meta)
+static auto sorted_ids_of_global_pagelist(
+	const std::unordered_map<std::string, meta_info> & meta,
+	const config::sort_description & sort_desc)
 {
-	const auto sort_desc = system::cfg().get_pagelist().sorting;
-
 	// extract sorting criteria, build map key->filename
 	std::vector<std::pair<std::string, std::string>> ids;
 	if (sort_desc.key == "date") {
@@ -308,12 +307,18 @@ static std::string prepare_global_pagelist(
 	}
 
 	sort(ids, sort_desc);
+	return ids;
+}
 
+static std::string prepare_global_pagelist(
+	const std::unordered_map<std::string, meta_info> & meta)
+{
 	// generate HTML list of sorted entries
 	const auto site_url = system::cfg().get_site_url();
+	const auto sort_desc = system::cfg().get_pagelist().sorting;
 	std::ostringstream os;
 	os << "<ul>";
-	for (const auto & entry : ids) {
+	for (const auto & entry : sorted_ids_of_global_pagelist(meta, sort_desc)) {
 		const auto filename = entry.second;
 		const auto title = meta.find(filename)->second.title; // single-thread, still valid
 		const auto url = replace_root(convert_path(filename));
@@ -635,6 +640,16 @@ static std::string get_meta_contents()
 																		  "---\n");
 }
 
+static std::string get_meta_sitemap()
+{
+	return read_file_contents(system::get_theme_template_meta_sitemap(), "---\n"
+																		 "title: Sitemap\n"
+																		 "author: %s\n"
+																		 "date: %s\n"
+																		 "language: en\n"
+																		 "---\n");
+}
+
 static std::string get_title_newest_entries()
 {
 	return read_file_contents(system::get_theme_title_newest_entries(), "Newest Entries:");
@@ -787,6 +802,47 @@ static void process_front()
 	} catch (...) {
 		fs::remove_all(tmp);
 		throw std::runtime_error{"error in processing front page"};
+	}
+
+	fs::remove_all(tmp);
+}
+
+static void process_sitemap()
+{
+	// write a page containing all pages of the site,
+	// sorted according to the configuration
+
+	const auto sitemap = system::cfg().get_sitemap();
+	if (!sitemap.enable)
+		return;
+
+	const auto date_str = posix_time::now().str_date();
+	const auto author = system::cfg().get_author();
+
+	auto tmp = create_temp_directory();
+
+	const auto index_filename = tmp + "/sitemap.md";
+	const auto destination_filename = system::cfg().get_destination() + "/sitemap.html";
+
+	try {
+		std::ofstream ofs{index_filename.c_str()};
+		ofs << fmt::sprintf(get_meta_sitemap(), author, date_str) << '\n';
+
+		for (const auto & entry : sorted_ids_of_global_pagelist(global.meta, sitemap.sorting)) {
+			const auto meta = get_meta_for_source(entry.second);
+			if (!meta)
+				continue;
+
+			const auto link = fs::path{entry.second}.replace_extension(".html").string();
+			ofs << " - `" << meta->date.str_date() << "` [" << meta->title << "](" << link << ")\n";
+		}
+
+		ofs.close();
+		ensure_path_for_file(destination_filename);
+		process_document(index_filename, destination_filename);
+	} catch (...) {
+		fs::remove_all(tmp);
+		throw std::runtime_error{"error in processing site map"};
 	}
 
 	fs::remove_all(tmp);
@@ -990,6 +1046,7 @@ int main(int argc, char ** argv)
 		process_overview(global.years, "year", get_meta_years());
 		process_pages(system::cfg().get_source(), system::cfg().get_destination());
 		process_front();
+		process_sitemap();
 		process_redirect(system::cfg().get_destination());
 		config_copy = true;
 		config_plugins = true;
