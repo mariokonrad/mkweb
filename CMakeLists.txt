@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.5)
 # script `bin/prepare`. Repositories are assumed to be
 # in `$HOME/local/repos`.
 
-project(mkweb VERSION 1.0.0 LANGUAGES CXX)
+project(mkweb VERSION 1.1.0 LANGUAGES CXX)
 
 # TODO: enable those three lines, once C++17 becomes a thing
 #set(CMAKE_CXX_STANDARD 17)

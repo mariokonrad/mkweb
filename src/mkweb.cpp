@@ -338,9 +338,8 @@ static std::string prepare_global_pagelist(
 
 	if ((system::cfg().get_sitemap().enable) && (num_entries != 0)
 		&& (ids.size() > static_cast<std::size_t>(num_entries))) {
-
-		os << "<div style=\"font-size:80%; font-style:italic;\"><a href=\""
-		   << site_url + system::get_sitemap_filename() << "\">more...</a></div>";
+		os << "<div id=\"morelink\"><a href=\"" << site_url + system::get_sitemap_filename()
+		   << "\">...</a></div>";
 	}
 
 	return os.str();
