@@ -8,8 +8,8 @@
 /// Copyright (c) 2016 Mario Konrad
 ///
 
-#ifndef __UTILS__SUBPROCESS__HPP__
-#define __UTILS__SUBPROCESS__HPP__
+#ifndef UTILS__SUBPROCESS__HPP
+#define UTILS__SUBPROCESS__HPP
 
 #include <string>
 #include <system_error>

@@ -1,5 +1,5 @@
-#ifndef __MKWEB__CONFIG_HPP__
-#define __MKWEB__CONFIG_HPP__
+#ifndef MKWEB__CONFIG_HPP
+#define MKWEB__CONFIG_HPP
 
 #include <memory>
 #include <string>

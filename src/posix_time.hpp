@@ -1,5 +1,5 @@
-#ifndef __MKWEB__POSIX_TIME__HPP__
-#define __MKWEB__POSIX_TIME__HPP__
+#ifndef MKWEB__POSIX_TIME__HPP
+#define MKWEB__POSIX_TIME__HPP
 
 #include <tuple>
 #include <ctime>
