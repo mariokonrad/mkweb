@@ -10,9 +10,11 @@ if [ ! -d ${BUILD} ] ; then
 	mkdir -p ${BUILD}
 fi
 
+source ${SCRIPT_BASE}/compiler-env.sh
+
 cd ${BUILD}
 cmake \
-	-DCMAKE_CXX_COMPILER=g++-6 \
+	-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} \
 	-DCMAKE_EXPORT_COMPILE_COMMANDS=YES \
 	-DCMAKE_BUILD_TYPE=Release \
 	..

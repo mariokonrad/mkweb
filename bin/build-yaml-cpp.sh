@@ -15,6 +15,7 @@ if [ ! -d "${build_dir}" ] ; then mkdir -p ${build_dir} ; fi
 
 pushd ${build_dir}
 cmake \
+	-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DCMAKE_INSTALL_PREFIX=${install_prefix} \
 	-DYAML_CPP_BUILD_TOOLS=OFF \

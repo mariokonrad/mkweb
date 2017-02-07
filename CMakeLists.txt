@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.7)
 
 # This build assumes all necessary libraries are available
 # at `${CMAKE_CURRENT_SOURCE_DIR}/local`.
@@ -8,16 +8,10 @@ cmake_minimum_required(VERSION 3.5)
 
 project(mkweb VERSION 1.1.0 LANGUAGES CXX)
 
-# TODO: enable those three lines, once C++17 becomes a thing
-#set(CMAKE_CXX_STANDARD 17)
-#set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#set(CMAKE_CXX_EXTENSIONS OFF)
-
-if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang")
-	set(CXX_STANDARD_OPTIONS "--std=c++1z")
-else()
-	message(FATAL_ERROR "Unsupported compiler detected: ${CMAKE_CXX_COMPILER_ID}")
-endif()
+# CMake 3.7++ finally supports C++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # strip binary in release mode
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
