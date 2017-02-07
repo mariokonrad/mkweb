@@ -2,7 +2,7 @@
 mkweb - Static Website Generator
 ================================
 
-Copyright 2016 Mario Konrad <mario.konrad@gmx.net>
+Copyright 2017 Mario Konrad <mario.konrad@gmx.net>
 
 Static website generator supporting themes and plugins.
 Using `pandoc` to convert pages from markdown to HTML.
@@ -13,7 +13,7 @@ Build
 Environment:
 
 - GCC-6 (C++17)
-- CMake 3.5
+- CMake 3.7.20170202-g2b025 (or newer)
 
 Library dependencies:
 
@@ -28,10 +28,9 @@ dependencies:
 
 	bin/prepare
 
-Build:
+Build (default):
 
 	bin/prepare-build
 	cd build
-	cmake -DCMAKE_CXX_COMPILER=g++-6 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/tmp/mkweb ..
 	make
 
