@@ -99,7 +99,7 @@ private:
 	const YAML::Node & node() const;
 
 	std::string get_node_str(const std::string & tag, const std::string & default_value) const;
-	std::string substitue_vars(const std::string & s) const;
+	std::string substitute_vars(const std::string & s) const;
 
 	std::string get_str(const std::string & tag, const std::string & default_value) const;
 

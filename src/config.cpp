@@ -228,7 +228,7 @@ std::string config::get_node_str(
 												   : default_value;
 }
 
-std::string config::substitue_vars(const std::string & s) const
+std::string config::substitute_vars(const std::string & s) const
 {
 	static const std::regex variable_regex("\\$\\{[0-9a-zA-Z_]+\\}");
 
@@ -257,7 +257,7 @@ std::string config::substitue_vars(const std::string & s) const
 
 std::string config::get_str(const std::string & tag, const std::string & default_value) const
 {
-	return substitue_vars(get_node_str(tag, default_value));
+	return substitute_vars(get_node_str(tag, default_value));
 }
 
 int config::get_int(const std::string & tag, int default_value) const
