@@ -16,7 +16,6 @@
 #include <nlohmann/json.hpp>
 
 #include <fmt/format.h>
-#include <fmt/printf.h>
 
 #include "system.hpp"
 #include "config.hpp"
