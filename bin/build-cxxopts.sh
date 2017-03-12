@@ -6,30 +6,18 @@ if [ $# != 2 ] ; then
 	exit 1
 fi
 
+source ${script_dir}/common.sh
+
 pkg=cxxopts
-repo_local=${HOME}/local/repo/${pkg}
-repo_remote=https://github.com/jarro2783/cxxopts.git
-branch="v1.0.0"
 
 build_prefix=$1
 build_dir=${build_prefix}/${pkg}
 install_prefix=$2
-repo_src=
 
 if [ ! -d "${install_prefix}" ] ; then mkdir -p ${install_prefix} ; fi
 if [ ! -d "${build_dir}" ] ; then mkdir -p ${build_dir} ; fi
 
-tmpdir=
-if [ -d "${repo_local}" ] ; then
-	repo_src="${repo_local}"
-else
-	repo_src="${repo_remote}"
-fi
-tmpdir=$(mktemp -d)
-pushd ${tmpdir}
-git clone --depth 1 --branch ${branch} ${repo_src}
-popd
-repo_dir=${tmpdir}/${pkg}
+tmpdir=$(clone_repository "v1.0.0" ${HOME}/local/repo/${pkg} https://github.com/jarro2783/cxxopts.git)
 
 pushd ${build_dir}
 cmake \
@@ -37,7 +25,7 @@ cmake \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DCMAKE_INSTALL_PREFIX=${install_prefix} \
 	-DCXXOPTS_BUILD_EXAMPLES=OFF \
-	${repo_dir}
+	${tmpdir}
 make -j 8
 make install
 popd
