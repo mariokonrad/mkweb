@@ -1,7 +1,7 @@
 #include "system.hpp"
 #include <experimental/filesystem>
+#include <cerrno>
 #include <unistd.h>
-#include <errno.h>
 #include <linux/limits.h>
 #include "config.hpp"
 #include "version.hpp"
@@ -20,7 +20,7 @@ static std::string path_to_binary()
 	if (::readlink("/proc/self/exe", path, sizeof(path)) < 0)
 		throw std::system_error{errno, std::system_category(), "error in 'readlink'"};
 
-	std::string p{path};
+	const std::string p{path};
 	return p.substr(0, p.find_last_of('/'));
 }
 

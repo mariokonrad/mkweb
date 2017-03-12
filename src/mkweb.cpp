@@ -1024,8 +1024,7 @@ int main(int argc, char ** argv)
 	using namespace mkweb;
 
 	if (options.count("version")) {
-		std::cout << project_name << ' ' << version_major << '.' << version_minor << '.'
-				  << version_patch << '\n';
+		std::cout << project_name << ' ' << project_version << '\n';
 		return 0;
 	}
 
