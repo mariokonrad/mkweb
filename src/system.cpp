@@ -50,24 +50,19 @@ config & system::cfg()
 	return *cfg_;
 }
 
-std::string system::get_plugin_path(const std::string & plugin)
+plugin system::get_plugin(const std::string & name)
 {
-	return path_to_shared() + "plugins/" + plugin + '/';
-}
-
-std::string system::get_plugin_config(const std::string & plugin)
-{
-	return get_plugin_path(plugin) + "files.yml";
-}
-
-std::string system::get_plugin_style(const std::string & plugin)
-{
-	return get_plugin_path(plugin) + "style.html";
+	return plugin{path_to_shared() + "plugins/" + name + '/'};
 }
 
 std::string system::get_sitemap_filename()
 {
 	return "sitemap.html";
+}
+
+theme system::get_theme()
+{
+	return theme{get_theme_path()};
 }
 
 std::string system::get_theme_path()
@@ -78,47 +73,6 @@ std::string system::get_theme_path()
 	if (fs::exists(path))
 		return path;
 	return ps + "themes/" + cfg().get_theme().type + '/';
-}
-
-std::string system::get_theme_template()
-{
-	return get_theme_path() + "template.html";
-}
-
-std::string system::get_theme_template_meta_tags()
-{
-	return get_theme_path() + "meta-tags.txt";
-}
-
-std::string system::get_theme_template_meta_years()
-{
-	return get_theme_path() + "meta-year.txt";
-}
-
-std::string system::get_theme_template_meta_contents()
-{
-	return get_theme_path() + "meta-contents.txt";
-}
-
-std::string system::get_theme_template_meta_sitemap()
-{
-	return get_theme_path() + "meta-sitemap.txt";
-}
-
-std::string system::get_theme_style()
-{
-	return get_theme_path() + "style.html";
-}
-
-std::string system::get_theme_footer()
-{
-	const auto path = get_theme_path() + "footer.html";
-	return fs::exists(path) ? path : std::string{};
-}
-
-std::string system::get_theme_title_newest_entries()
-{
-	return get_theme_path() + "title_newest_entries.txt";
 }
 
 std::string system::pandoc()

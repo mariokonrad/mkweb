@@ -1,8 +1,10 @@
 #ifndef MKWEB__SYSTEM__HPP
 #define MKWEB__SYSTEM__HPP
 
-#include <string>
 #include <memory>
+#include <string>
+#include "plugin.hpp"
+#include "theme.hpp"
 
 namespace mkweb
 {
@@ -14,20 +16,10 @@ public:
 	static void reset(const std::shared_ptr<config> & cfg);
 	static config & cfg();
 
-	static std::string get_plugin_path(const std::string & plugin);
-	static std::string get_plugin_config(const std::string & plugin);
-	static std::string get_plugin_style(const std::string & plugin);
-	static std::string get_sitemap_filename();
+	static plugin get_plugin(const std::string & name);
+	static theme get_theme();
 
-	static std::string get_theme_path();
-	static std::string get_theme_template();
-	static std::string get_theme_template_meta_tags();
-	static std::string get_theme_template_meta_years();
-	static std::string get_theme_template_meta_contents();
-	static std::string get_theme_template_meta_sitemap();
-	static std::string get_theme_style();
-	static std::string get_theme_footer();
-	static std::string get_theme_title_newest_entries();
+	static std::string get_sitemap_filename();
 
 	static std::string pandoc();
 	static void set_pandoc(const std::string & path);
@@ -35,6 +27,8 @@ public:
 private:
 	static std::shared_ptr<config> cfg_;
 	static std::string pandoc_;
+
+	static std::string get_theme_path();
 };
 }
 

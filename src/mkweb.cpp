@@ -364,13 +364,13 @@ static bool conversion_necessary(
 	const auto mtime_out = fs::last_write_time(filename_out);
 	if (mtime_out < fs::last_write_time(filename_in))
 		return true;
-	if (mtime_out < fs::last_write_time(system::get_theme_template()))
+
+	const auto th = system::get_theme();
+	if (mtime_out < fs::last_write_time(th.get_template()))
 		return true;
-	if (!system::get_theme_style().empty()
-		&& (mtime_out < fs::last_write_time(system::get_theme_style())))
+	if (!th.get_style().empty() && (mtime_out < fs::last_write_time(th.get_style())))
 		return true;
-	if (!system::get_theme_footer().empty()
-		&& (mtime_out < fs::last_write_time(system::get_theme_footer())))
+	if (!th.get_footer().empty() && (mtime_out < fs::last_write_time(th.get_footer())))
 		return true;
 
 	return false;
@@ -484,7 +484,7 @@ static std::string make_plugin_script_string(
 static std::string create_header_for_plugin(const std::string & plugin)
 {
 	std::ostringstream os;
-	auto cfg = YAML::LoadFile(system::get_plugin_config(plugin));
+	auto cfg = YAML::LoadFile(system::get_plugin(plugin).get_config());
 	if (cfg["include"]) {
 		for (const auto & entry : cfg["include"]) {
 			os << make_plugin_script_string(plugin, entry.as<std::string>());
@@ -496,17 +496,19 @@ static std::string create_header_for_plugin(const std::string & plugin)
 static std::vector<std::string> prepare_pandoc_params(const std::string & filename_in,
 	const std::string & filename_out, const std::string & tags_list)
 {
+	const auto th = system::get_theme();
+
 	// clang-format off
 	std::vector<std::string> params {
 		system::pandoc(),
 		"-f", "json",
 		"-t", "html5",
 		"-o", filename_out,
-		"-H", system::get_theme_style(),
+		"-H", th.get_style(),
 		"-M", "title-prefix=" + system::cfg().get_site_title(),
 		"-V", "siteurl=" + system::cfg().get_site_url(),
 		"-V", "sitetitle=" + system::cfg().get_site_title(),
-		"--template", system::get_theme_template(),
+		"--template", th.get_template(),
 		"--standalone",
 		"--preserve-tabs",
 		"--toc", "--toc-depth=2",
@@ -514,8 +516,8 @@ static std::vector<std::string> prepare_pandoc_params(const std::string & filena
 	};
 	// clang-format on
 
-	if (!system::get_theme_footer().empty())
-		append(params, {"-A", system::get_theme_footer()});
+	if (!th.get_footer().empty())
+		append(params, {"-A", th.get_footer()});
 	if (!system::cfg().get_site_subtitle().empty())
 		append(params, {"-V", "sitesubtitle=" + system::cfg().get_site_subtitle()});
 	if (system::cfg().get_tags_enable())
@@ -534,7 +536,7 @@ static std::vector<std::string> prepare_pandoc_params(const std::string & filena
 	const auto meta = get_meta_for_source(filename_in);
 	if (meta) {
 		for (const auto & plugin : meta->plugins) {
-			append(params, {"-H", system::get_plugin_style(plugin)});
+			append(params, {"-H", system::get_plugin(plugin).get_style()});
 			append(params, {"-V", "header-string=" + create_header_for_plugin(plugin)});
 		}
 	}
@@ -627,7 +629,7 @@ static std::string read_file_contents(
 
 static std::string get_meta_tags()
 {
-	return read_file_contents(system::get_theme_template_meta_tags(),
+	return read_file_contents(system::get_theme().get_template_meta_tags(),
 		"---\n"
 		"title: \"Tag Overview: %s\"\n"
 		"author: %s\n"
@@ -638,7 +640,7 @@ static std::string get_meta_tags()
 
 static std::string get_meta_years()
 {
-	return read_file_contents(system::get_theme_template_meta_years(),
+	return read_file_contents(system::get_theme().get_template_meta_years(),
 		"---\n"
 		"title: \"Year Overview: %s\"\n"
 		"author: %s\n"
@@ -649,27 +651,30 @@ static std::string get_meta_years()
 
 static std::string get_meta_contents()
 {
-	return read_file_contents(system::get_theme_template_meta_contents(), "---\n"
-																		  "title: Contents\n"
-																		  "author: %s\n"
-																		  "date: %s\n"
-																		  "language: en\n"
-																		  "---\n");
+	return read_file_contents(system::get_theme().get_template_meta_contents(),
+		"---\n"
+		"title: Contents\n"
+		"author: %s\n"
+		"date: %s\n"
+		"language: en\n"
+		"---\n");
 }
 
 static std::string get_meta_sitemap()
 {
-	return read_file_contents(system::get_theme_template_meta_sitemap(), "---\n"
-																		 "title: Sitemap\n"
-																		 "author: %s\n"
-																		 "date: %s\n"
-																		 "language: en\n"
-																		 "---\n");
+	return read_file_contents(system::get_theme().get_template_meta_sitemap(),
+		"---\n"
+		"title: Sitemap\n"
+		"author: %s\n"
+		"date: %s\n"
+		"language: en\n"
+		"---\n");
 }
 
 static std::string get_title_newest_entries()
 {
-	return read_file_contents(system::get_theme_title_newest_entries(), "Newest Entries:");
+	return read_file_contents(
+		system::get_theme().get_title_newest_entries(), "Newest Entries:");
 }
 
 static std::string create_temp_directory()
@@ -949,13 +954,14 @@ static void copy_plugin_files(const std::string & plugin)
 {
 	std::cout << "install plugin: " << plugin << '\n';
 
-	const auto cfg = YAML::LoadFile(system::get_plugin_config(plugin));
+	const auto plg = system::get_plugin(plugin);
+	const auto cfg = YAML::LoadFile(plg.get_config());
 
 	if (!cfg || !cfg["install"])
 		throw std::runtime_error{"error: unable to read configuration for plugin: " + plugin};
 
-	const auto destination_path = fs::path{system::cfg().get_plugin_path(plugin)};
-	const auto plugin_path = fs::path{system::get_plugin_path(plugin)};
+	const auto destination_path = fs::path{system::cfg().get_plugin_path(plugin)}; // TODO: correct?
+	const auto plugin_path = fs::path{plg.get_path()};
 
 	for (const auto & entry : cfg["install"]) {
 		const auto f = entry.as<std::string>();
