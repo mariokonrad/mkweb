@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.7)
 # script `bin/prepare`. Repositories are assumed to be
 # in `$HOME/local/repos`.
 
-project(mkweb VERSION 1.2.0.1 LANGUAGES CXX)
+project(mkweb VERSION 1.2.1.0 LANGUAGES CXX)
 
 # CMake >=3.7 finally supports C++17
 set(CMAKE_CXX_STANDARD 17)
@@ -74,7 +74,7 @@ install(
 
 install(
 	DIRECTORY shared/
-	DESTINATION shared/${PROJECT_NAME}
+	DESTINATION shared/
 	)
 
 # package
