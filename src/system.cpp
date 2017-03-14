@@ -6,9 +6,17 @@
 #include "config.hpp"
 #include "version.hpp"
 
-namespace
+namespace mkweb
 {
-static std::string path_to_binary()
+namespace fs
+{
+using std::experimental::filesystem::exists;
+}
+
+std::shared_ptr<config> system::cfg_;
+std::string system::pandoc_ = "pandoc";
+
+std::string system::path_to_binary()
 {
 	// for a reason, not investigated further, this does not work at the moment,
 	// therefore it has to be done manually and natively.
@@ -24,21 +32,10 @@ static std::string path_to_binary()
 	return p.substr(0, p.find_last_of('/'));
 }
 
-static std::string path_to_shared()
+std::string system::path_to_shared()
 {
 	return path_to_binary() + "/../shared/" + mkweb::project_name + '/';
 }
-}
-
-namespace mkweb
-{
-namespace fs
-{
-using std::experimental::filesystem::exists;
-}
-
-std::shared_ptr<config> system::cfg_;
-std::string system::pandoc_ = "pandoc";
 
 void system::reset(const std::shared_ptr<config> & cfg)
 {

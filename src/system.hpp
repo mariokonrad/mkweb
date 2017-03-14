@@ -13,6 +13,9 @@ class config; // forward declaration
 class system
 {
 public:
+	static std::string path_to_binary();
+	static std::string path_to_shared();
+
 	static void reset(const std::shared_ptr<config> & cfg);
 	static config & cfg();
 

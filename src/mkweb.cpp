@@ -1000,6 +1000,8 @@ int main(int argc, char ** argv)
 			"Shows help information")
 		("version",
 			"shows version")
+		("info",
+			"shows information")
 		("c,config",
 			"Read config from the specified file",
 			cxxopts::value<std::string>(config_filename))
@@ -1030,6 +1032,12 @@ int main(int argc, char ** argv)
 
 	if (options.count("version")) {
 		std::cout << project_name << ' ' << project_version << '\n';
+		return 0;
+	}
+
+	if (options.count("info")) {
+		std::cout << "path to binary: " << system::path_to_binary() << '\n';
+		std::cout << "path to shared: " << system::path_to_shared() << '\n';
 		return 0;
 	}
 
