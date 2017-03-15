@@ -42,6 +42,7 @@ using std::experimental::filesystem::create_directories;
 using std::experimental::filesystem::canonical;
 }
 
+/// Meta information about a document.
 struct meta_info {
 	posix_time date;
 	std::string title;
@@ -52,6 +53,7 @@ struct meta_info {
 	std::vector<std::string> plugins;
 };
 
+/// Contains all global data.
 static struct {
 	std::unordered_map<std::string, meta_info> meta;
 	std::unordered_map<std::string, std::vector<std::string>> tags;
@@ -64,6 +66,7 @@ static struct {
 	std::string page_list;
 } global;
 
+/// Returns meta information about the specified file.
 static std::experimental::optional<meta_info> get_meta_for_source(
 	const std::string & filename_in)
 {
@@ -73,6 +76,7 @@ static std::experimental::optional<meta_info> get_meta_for_source(
 	return {};
 }
 
+/// Reads meta information from the header of a markdown file.
 static std::string read_meta_string_from_markdown(const std::string & path)
 {
 	std::ifstream ifs{path.c_str()};
@@ -87,6 +91,7 @@ static std::string read_meta_string_from_markdown(const std::string & path)
 	return contents;
 }
 
+/// Collects information from the node into the container.
 template <class Container> static void collect(const YAML::Node & node, Container & c)
 {
 	if (!node)
@@ -101,6 +106,7 @@ template <class Container> static void collect(const YAML::Node & node, Containe
 	}
 }
 
+/// Specialization of the collect function for string.
 static void collect(const YAML::Node & node, std::string & s)
 {
 	if (!node)
@@ -110,6 +116,9 @@ static void collect(const YAML::Node & node, std::string & s)
 		s = node.as<std::string>();
 }
 
+/// Read meta data from the specified file.
+///
+/// Meta data is in YAML within the header of the markdown file.
 static meta_info read_meta(const std::string & path)
 {
 	const auto txt = read_meta_string_from_markdown(path);
@@ -136,6 +145,9 @@ static meta_info read_meta(const std::string & path)
 	return info;
 }
 
+/// Collects information recursively down the directory tree for each file.
+///
+/// Meta data is collected into the global data.
 static void collect_information(const std::string & source_root_directory)
 {
 	const fs::path source_path{source_root_directory};
@@ -168,12 +180,14 @@ static void collect_information(const std::string & source_root_directory)
 	}
 }
 
+/// Splits specified path into its parts.
 static std::vector<std::string> split_path(const std::string & path)
 {
 	fs::path p{path};
 	return std::vector<std::string>{p.begin(), p.end()};
 }
 
+/// Returns a path constructed from parts.
 template <typename Iterator> static std::string join_path(Iterator begin, Iterator end)
 {
 	// std::experimental::filesystem::path(InputIterator, InputIterator)
@@ -185,6 +199,7 @@ template <typename Iterator> static std::string join_path(Iterator begin, Iterat
 	return p.string();
 }
 
+/// Replaces the root of links with the configured one.
 static std::string replace_root(const std::string & link)
 {
 	auto parts = split_path(link);
@@ -207,6 +222,9 @@ static std::string replace_root(const std::string & link)
 	return join_path(parts.begin(), parts.end());
 }
 
+/// Prepares the tag list as a string containing HTML.
+///
+/// \param[in] tags Container of tags to render into HTML.
 static std::string prepare_tag_list(std::vector<std::string> tags)
 {
 	if (tags.size() == 0)
@@ -225,6 +243,7 @@ static std::string prepare_tag_list(std::vector<std::string> tags)
 	return os.str();
 }
 
+/// Returns a string representing the global tag list in HTML.
 static std::string prepare_global_tag_list(
 	const std::unordered_map<std::string, std::vector<std::string>> & tags)
 {
@@ -235,6 +254,7 @@ static std::string prepare_global_tag_list(
 	return prepare_tag_list(ids);
 }
 
+/// Returns a string containing links to year overview pages.
 static std::string prepare_global_year_list(
 	const std::unordered_map<std::string, std::vector<std::string>> & years)
 {
@@ -256,6 +276,10 @@ static std::string prepare_global_year_list(
 	return os.str();
 }
 
+/// Checks wheather or not the specified container contains the element.
+///
+/// \param[in] element Element to check.
+/// \param[in] container The container to be searched.
 template <class Container>
 static bool contains(
 	const typename Container::value_type & element, const Container & container)
@@ -263,6 +287,12 @@ static bool contains(
 	return std::find(begin(container), end(container), element) != end(container);
 }
 
+/// Converts the specified path, replaces the file extension if configured
+/// to be processed.
+///
+/// Example: configuration says to process '.md' files, so the file extension
+///          of 'foo.md' will be replaced to 'foo.html'.
+///
 static std::string convert_path(const std::string & fn)
 {
 	fs::path path{fn};
@@ -272,6 +302,12 @@ static std::string convert_path(const std::string & fn)
 	return std::string{};
 }
 
+/// Sorts the specified container of IDs according to the sort criteria
+/// defined by the sort description.
+///
+/// \param[in,out] ids The container to be sorted.
+/// \param[in] desc Sort description.
+///
 static void sort(std::vector<std::pair<std::string, std::string>> & ids,
 	const config::sort_description & desc)
 {
@@ -287,6 +323,12 @@ static void sort(std::vector<std::pair<std::string, std::string>> & ids,
 	}
 }
 
+/// Returns a container, IDs sorted according to the specified criteria.
+///
+/// \param[in] meta Meta information about pages.
+/// \param[in] sort_desc Sorting criteria.
+/// \return Container of sorted IDs.
+///
 static auto sorted_ids_of_global_pagelist(
 	const std::unordered_map<std::string, meta_info> & meta,
 	const config::sort_description & sort_desc)
@@ -309,6 +351,9 @@ static auto sorted_ids_of_global_pagelist(
 	return ids;
 }
 
+/// Returns a string (HTML) with a list of all pages, created from the
+/// specified meta information. The list will be sorted according to the
+/// configuration.
 static std::string prepare_global_pagelist(
 	const std::unordered_map<std::string, meta_info> & meta)
 {
@@ -344,6 +389,8 @@ static std::string prepare_global_pagelist(
 	return os.str();
 }
 
+/// Returns a string (HTML) representing a list of tags for a specific document.
+/// The list will be sorted according to the configuration.
 static std::string prepare_page_tag_list(const std::string & filename_in)
 {
 	const auto meta = get_meta_for_source(filename_in);
@@ -352,6 +399,11 @@ static std::string prepare_page_tag_list(const std::string & filename_in)
 	return prepare_tag_list(meta->tags);
 }
 
+/// Finds out if a conversion of a specific document is necessary or not.
+///
+/// \param[in] filename_in Source document.
+/// \param[in] filename_out Destination filename.
+///
 static bool conversion_necessary(
 	const std::string & filename_in, const std::string & filename_out)
 {
@@ -375,6 +427,8 @@ static bool conversion_necessary(
 	return false;
 }
 
+/// Makes sure the entire path specified by the filename/filepath
+/// is present. All non-existing directories will be created.
 static bool ensure_path_for_file(const std::string & filename)
 {
 	if (filename.empty())
@@ -386,6 +440,8 @@ static bool ensure_path_for_file(const std::string & filename)
 	return fs::create_directories(path);
 }
 
+/// Reads and returns JSON representation (generated by pandoc) of the specified
+/// document.
 static std::string read_json_str_from_document(const std::string & path)
 {
 	utils::subprocess p{{system::pandoc(), "-t", "json", path}};
@@ -399,6 +455,13 @@ static std::string read_json_str_from_document(const std::string & path)
 	return os.str();
 }
 
+/// Uses pandoc to write the destination document using the JSON data.
+///
+/// \param[in] params Parameters to execute pandoc.
+/// \param[in] content JSON data for pandoc to render into the destination
+///   document.
+/// \return `true` if successful, `false` otherwise.
+///
 static bool write_document_from_json(
 	const std::vector<std::string> & params, const std::string & content)
 {
@@ -418,6 +481,8 @@ static bool write_document_from_json(
 	return (rc == 0) && (os.tellp() == 0);
 }
 
+/// Processes a link within the JSON node. Links need to point to the
+/// configured destination root.
 static void handle_link(nlohmann::json & data)
 {
 	auto i = data.find("c");
@@ -435,6 +500,8 @@ static void handle_link(nlohmann::json & data)
 	link = replace_root(link);
 }
 
+/// Searches recursively links within the JSON DOM and processes
+/// them to point to the configured destination URLs.
 static void fix_links_recursive(nlohmann::json & data)
 {
 	if (data.is_array()) {
@@ -466,6 +533,7 @@ static void fix_links_recursive(nlohmann::json & data)
 	}
 }
 
+/// Appends the specified elements to the container.
 template <class Container>
 static void append(Container & v, std::initializer_list<typename Container::value_type> l)
 {
@@ -473,6 +541,11 @@ static void append(Container & v, std::initializer_list<typename Container::valu
 		v.push_back(item);
 }
 
+/// Returns a string (HTML) to include a JavaScript script on the destination document.
+///
+/// \param[in] plugin The name of the plugin.
+/// \param[in] filename The filename (from the plugin) to load.
+///
 static std::string make_plugin_script_string(
 	const std::string & plugin, const std::string & filename)
 {
@@ -480,6 +553,12 @@ static std::string make_plugin_script_string(
 		+ filename + "\"></script>";
 }
 
+/// Creates a string for the HTML head section to load the necessary files for
+/// the specified plugin.
+///
+/// \param[in] plugin The plugin's name.
+/// \return HTML string.
+///
 static std::string create_header_for_plugin(const std::string & plugin)
 {
 	std::ostringstream os;
@@ -492,6 +571,11 @@ static std::string create_header_for_plugin(const std::string & plugin)
 	return os.str();
 }
 
+/// Prepares parameters for pandoc to generate the destination document.
+///
+/// \param[in] filename_in The source filename.
+/// \param[in] filename_out The destination filename.
+/// \param[in] tags_list Tags list for the page.
 static std::vector<std::string> prepare_pandoc_params(const std::string & filename_in,
 	const std::string & filename_out, const std::string & tags_list)
 {
@@ -550,6 +634,11 @@ static std::vector<std::string> prepare_pandoc_params(const std::string & filena
 	return params;
 }
 
+/// Processes a document.
+///
+/// \param[in] filename_in Filename of the source document.
+/// \param[in] filename_out Filename of the destinatino document.
+/// \param[in] tags_list List of tags for the document.
 static void process_document(const std::string & filename_in, const std::string & filename_out,
 	const std::string & tags_list = std::string{})
 {
@@ -572,6 +661,14 @@ static void process_document(const std::string & filename_in, const std::string 
 		throw std::runtime_error{"unable to write file: " + filename_out};
 }
 
+/// Processes a single document.
+///
+/// \param[in] source_directory Source directory in which the source
+///   document is to be found.
+/// \param[in] destination_directory The directory in which the destination
+///   document will be created.
+/// \param[in] filename_in The filename of the document to process.
+///
 static void process_single(const std::string & source_directory,
 	const std::string & destination_directory, const std::string & filename_in)
 {
@@ -585,6 +682,11 @@ static void process_single(const std::string & source_directory,
 	}
 }
 
+/// Returns `true` if the specified path is a subdirectory of the directory.
+///
+/// \param[in] path Path to check if it is a subdirectory.
+/// \param[in] directory Directory to check against.
+///
 static bool is_subdir(const std::string & path, const std::string & directory)
 {
 	const auto p = fs::canonical(path);
@@ -593,6 +695,11 @@ static bool is_subdir(const std::string & path, const std::string & directory)
 	return std::equal(d.begin(), d.end(), p.begin());
 }
 
+/// Process files of a complete directory tree.
+///
+/// \param[in] source_directory Directory tree to process the files from.
+/// \param[in] destination_directory Directory to create destination documents in.
+///
 static void process_pages(const std::string source_directory,
 	const std::string & destination_directory, const std::string & specific_dir = std::string{})
 {
@@ -612,6 +719,11 @@ static void process_pages(const std::string source_directory,
 	}
 }
 
+/// Reads and returns the contents of the specified file. If the file does not
+/// exist, the default value will be returned.
+///
+/// \param[in] filename Filename of the file to read.
+/// \param[in] default_value Value to be returned if the file does not exist.
 static std::string read_file_contents(
 	const std::string & filename, const std::string & default_value)
 {
@@ -626,6 +738,7 @@ static std::string read_file_contents(
 	return os.str();
 }
 
+/// Returns the markdown header for a tag overview document.
 static std::string get_meta_tags()
 {
 	return read_file_contents(system::get_theme().get_template_meta_tags(),
@@ -637,6 +750,7 @@ static std::string get_meta_tags()
 		"---\n");
 }
 
+/// Returns the markdown header for a year overview document.
 static std::string get_meta_years()
 {
 	return read_file_contents(system::get_theme().get_template_meta_years(),
@@ -648,6 +762,7 @@ static std::string get_meta_years()
 		"---\n");
 }
 
+/// Returns the markdown header for a contents document.
 static std::string get_meta_contents()
 {
 	return read_file_contents(system::get_theme().get_template_meta_contents(),
@@ -659,6 +774,7 @@ static std::string get_meta_contents()
 		"---\n");
 }
 
+/// Returns the markdown header for a sitemap document.
 static std::string get_meta_sitemap()
 {
 	return read_file_contents(system::get_theme().get_template_meta_sitemap(),
@@ -684,6 +800,7 @@ static std::string create_temp_directory()
 	return path;
 }
 
+/// Returns a sorted container.
 template <typename Container, typename Comparison>
 Container sorted(const Container & c, Comparison comp)
 {
@@ -692,6 +809,7 @@ Container sorted(const Container & c, Comparison comp)
 	return t;
 }
 
+/// Returns a comparison function for the specified name.
 static std::function<bool(const std::string &, const std::string &)> get_overview_sorting(
 	const std::string & name)
 {
@@ -739,6 +857,8 @@ static std::function<std::string(const meta_info &)> get_overview_decoration(
 	return [](const meta_info &) { return std::string{}; };
 }
 
+/// Creates a temporary document for the desired overview and processes it.
+///
 static void process_overview(
 	const std::unordered_map<std::string, std::vector<std::string>> & items,
 	const std::string & name, const std::string & file_meta_info)
@@ -776,6 +896,7 @@ static void process_overview(
 	fs::remove_all(tmp);
 }
 
+/// Creates a front page.
 static void process_front()
 {
 	// write file with links to newest n pages
@@ -828,6 +949,7 @@ static void process_front()
 	fs::remove_all(tmp);
 }
 
+/// Creates the sitemap.
 static void process_sitemap()
 {
 	// write a page containing all pages of the site,
@@ -871,6 +993,8 @@ static void process_sitemap()
 	fs::remove_all(tmp);
 }
 
+/// Creates a redirecion page. Useful to have such file in a directory to
+/// prevent directory listing.
 static void process_redirect(const std::string & directory)
 {
 	static const std::string content_fmt = "<!DOCTYPE html>\n"
@@ -896,6 +1020,13 @@ static void process_redirect(const std::string & directory)
 	}
 }
 
+/// Copies files or directories. It is possible to specify a function to ignore
+/// specific entries.
+///
+/// \param[in] from File or directory to copy from.
+/// \param[in] from File or directory to copy to.
+/// \param[in] ignore Function to ask if an item has to be copied or not.
+///
 static void copy(
 	const fs::path & from, const fs::path & to, std::function<bool(const fs::path &)> ignore)
 {
@@ -923,12 +1054,14 @@ static void copy(
 	}
 }
 
+/// Default option to copy without ignoring anything.
 static void copy(const fs::path & from, const fs::path & to)
 {
 	// ignore none
 	copy(from, to, [](const fs::path &) -> bool { return false; });
 }
 
+/// Copies static files to the destination directory.
 static void process_copy_file()
 {
 	std::cout << "copy files\n";
@@ -949,6 +1082,11 @@ static void process_copy_file()
 	}
 }
 
+/// Copies all necessary files of a plugin to the destination directory.
+///
+/// \param[in] plugin The plugin's name. The files to copy are listed in
+///   the plugin's configuration.
+///
 static void copy_plugin_files(const std::string & plugin)
 {
 	std::cout << "install plugin: " << plugin << '\n';

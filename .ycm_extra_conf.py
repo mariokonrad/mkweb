@@ -7,7 +7,7 @@ flags = [
 	'-Wextra',
 	'-Werror'
 	'-pedantic',
-	'-std=c++14',
+	'-std=c++1z',
 	'-I.',
 	'-Isrc',
 	'-Ilocal/include',
