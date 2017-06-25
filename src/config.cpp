@@ -124,7 +124,7 @@ std::vector<config::path_map_entry> config::get_path_map() const
 			if (entry["base"])
 				t.base = entry["base"].as<std::string>();
 			if (entry["url"])
-				t.url = entry["url"].as<std::string>();
+				t.url = substitute_vars(entry["url"].as<std::string>());
 			if (entry["absolute"])
 				t.absolute = entry["absolute"].as<bool>();
 			entries.push_back(t);
