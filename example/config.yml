@@ -1,0 +1,48 @@
+source:      pages
+destination: public
+static:      files
+plugins:     public/plugins
+
+source-process-filetypes: [ '.md' ]
+
+site_url:   http://your-host/path/to/blog/
+plugin_url: ${site_url}plugins/
+
+site_title: mkweb Demo Site
+site_subtitle: "static website generator example"
+author: The Author
+num_news: 8
+
+theme: default
+
+tags-enable: true
+
+page-tags-enable: true
+
+pagelist:
+  enable: false
+  sort: { direction: 'ascending', key: 'title' }
+
+yearlist:
+  enable: true
+  sort: { direction: 'descending', key: 'date' }
+
+social-enable: true
+social: |
+  <ul>
+  <li><a href="https://www.youtube.com/">YouTube</a></li>
+  </ul>
+
+path_map: [
+  { base: 'pages', url: '', absolute: false },
+  { base: 'files', url: '', absolute: false },
+  { base: 'download', url: '${site_url}downloads/', absolute: true }
+  ]
+
+menu-enable: true
+menu: |
+  <ul>
+  <li><a href="${site_url}">Home</a></li>
+  <li><a href="${site_url}contact.html">Contact</a></li>
+  </ul>
+
