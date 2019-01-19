@@ -20,7 +20,7 @@ Build
 Environment:
 
 - GCC-6, GCC-7, GCC-8 (C++17)
-- CMake 3.11 (or newer)
+- CMake 3.13 (or newer)
 
 Library dependencies:
 
