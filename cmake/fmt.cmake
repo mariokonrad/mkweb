@@ -1,4 +1,11 @@
 
+if(EXISTS $ENV{HOME}/local/repo/fmt)
+	set(repo_fmt "file://$ENV{HOME}/local/repo/fmt")
+else()
+	set(repo_fmt "https://github.com/fmtlib/fmt")
+endif()
+message(STATUS "Repository for fmt: ${repo_fmt}")
+
 ExternalProject_add(extern-fmt
 	PREFIX "${CMAKE_CURRENT_BINARY_DIR}/fmt"
 	GIT_REPOSITORY ${repo_fmt}

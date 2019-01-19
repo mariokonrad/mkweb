@@ -1,4 +1,11 @@
 
+if(EXISTS $ENV{HOME}/local/repo/json)
+	set(repo_json "file://$ENV{HOME}/local/repo/json")
+else()
+	set(repo_json "https://github.com/nlohmann/json")
+endif()
+message(STATUS "Repository for nlohmann_json: ${repo_json}")
+
 ExternalProject_add(extern-json
 	PREFIX "${CMAKE_CURRENT_BINARY_DIR}/json"
 	GIT_REPOSITORY ${repo_json}

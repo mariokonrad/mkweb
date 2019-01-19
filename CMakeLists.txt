@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 
 project(mkweb VERSION 1.2.2.0 LANGUAGES CXX)
 
@@ -7,27 +7,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(ExternalProject)
 
-# location of repositories
-option(LOCAL_REPO "Use local repositories ($HOME/local/repo/...)" ON)
-if(LOCAL_REPO)
-	set(repo_json    "file://$ENV{HOME}/local/repo/json")
-	set(repo_fmt     "file://$ENV{HOME}/local/repo/fmt")
-	set(repo_yaml    "file://$ENV{HOME}/local/repo/yaml-cpp")
-	set(repo_cxxopts "file://$ENV{HOME}/local/repo/cxxopts")
-else()
-	set(repo_json    "https://github.com/nlohmann/json")
-	set(repo_fmt     "https://github.com/fmtlib/fmt")
-	set(repo_yaml    "https://github.com/jbeder/yaml-cpp")
-	set(repo_cxxopts "https://github.com/jarro2783/cxxopts")
-endif()
-
 # C++ Standard, Compiler (GNU) extensions disabled
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-# strip binary in release mode
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 
 set(extern_INSTALL_DIR "${CMAKE_BINARY_DIR}/local")
 include(nlohmann_json)
@@ -40,12 +23,15 @@ configure_file(
 	${CMAKE_CURRENT_BINARY_DIR}/src/version.hpp
 	)
 
-add_executable(${PROJECT_NAME}
-	src/mkweb.cpp
-	src/config.cpp
-	src/system.cpp
-	src/theme.cpp
-	src/plugin.cpp
+add_executable(${PROJECT_NAME})
+
+target_sources(${PROJECT_NAME}
+	PRIVATE
+		src/mkweb.cpp
+		src/config.cpp
+		src/system.cpp
+		src/theme.cpp
+		src/plugin.cpp
 	)
 
 target_include_directories(${PROJECT_NAME}
@@ -70,7 +56,11 @@ target_compile_options(${PROJECT_NAME}
 		-Wextra
 		-pedantic
 		-Wold-style-cast
-		${CXX_STANDARD_OPTIONS}
+	)
+
+target_link_options(${PROJECT_NAME}
+	PRIVATE
+		$<$<CONFIG:Release>:-s>
 	)
 
 install(

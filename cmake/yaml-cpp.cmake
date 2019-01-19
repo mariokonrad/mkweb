@@ -1,4 +1,11 @@
 
+if(EXISTS $ENV{HOME}/local/repo/yaml-cpp)
+	set(repo_yaml "file://$ENV{HOME}/local/repo/yaml-cpp")
+else()
+	set(repo_yaml "https://github.com/jbeder/yaml-cpp")
+endif()
+message(STATUS "Repository for yaml-cpp: ${repo_yaml}")
+
 ExternalProject_add(extern-yaml-cpp
 	PREFIX "${CMAKE_CURRENT_BINARY_DIR}/yaml-cpp"
 	GIT_REPOSITORY ${repo_yaml}
