@@ -1,0 +1,35 @@
+#include "version.hpp"
+
+namespace mkweb
+{
+const char * project_name() noexcept
+{
+	return "@PROJECT_NAME@";
+}
+
+const char * project_version() noexcept
+{
+	return "@PROJECT_VERSION@";
+}
+
+const char * version_major() noexcept
+{
+	return "@PROJECT_VERSION_MAJOR@";
+}
+
+const char * version_minor() noexcept
+{
+	return "@PROJECT_VERSION_MINOR@";
+}
+
+const char * version_patch() noexcept
+{
+	return "@PROJECT_VERSION_PATCH@";
+}
+
+const char * version_tweak() noexcept
+{
+	return "@PROJECT_VERSION_TWEAK@";
+}
+}
+

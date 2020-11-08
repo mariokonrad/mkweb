@@ -1132,7 +1132,7 @@ int main(int argc, char ** argv)
 	bool config_plugins = false;
 
 	// clang-format off
-	cxxopts::Options options{argv[0], std::string{mkweb::project_name} + " - Static Website Generator"};
+	cxxopts::Options options{argv[0], std::string{mkweb::project_name()} + " - Static Website Generator"};
 	options.add_options()
 		("h,help",
 			"Shows help information")
@@ -1169,7 +1169,7 @@ int main(int argc, char ** argv)
 	using namespace mkweb;
 
 	if (options.count("version")) {
-		std::cout << project_name << ' ' << project_version << '\n';
+		std::cout << project_name() << ' ' << project_version() << '\n';
 		return 0;
 	}
 

@@ -34,7 +34,7 @@ std::string system::path_to_binary()
 
 std::string system::path_to_shared()
 {
-	return path_to_binary() + "/../shared/" + mkweb::project_name + '/';
+	return path_to_binary() + "/../shared/" + mkweb::project_name() + '/';
 }
 
 void system::reset(const std::shared_ptr<config> & cfg)
